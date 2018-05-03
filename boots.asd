@@ -6,6 +6,7 @@
 
   :depends-on (
 
+               :cl-charms
                :iterate
                :losh
 
