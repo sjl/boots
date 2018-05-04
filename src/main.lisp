@@ -371,6 +371,37 @@
              (sleep 1/60))))
 
 
+;;;; Fresh TTY Bullshit -------------------------------------------------------
+(defconstant +stdout-file-descriptor+ 1)
+
+(cffi:defcfun fopen :pointer
+  (path :string)
+  (mode :string))
+
+(defun initialize-fresh-tty ()
+  (nest
+    (let ((tty (fopen "/dev/tty" "r+"))))
+    (if (cffi:null-pointer-p tty)
+      (error "FOPEN failed."))
+    (let ((term (charms/ll:newterm (cffi:null-pointer) tty tty))))
+    (if (cffi:null-pointer-p term)
+      (error "NEWTERM failed."))
+    (charms/ll:set-term term))
+  (let ((win (charms:standard-window)))
+    (charms:refresh-window win)
+    win))
+
+(defmacro with-curses ((&key fresh-tty) &body body)
+  `(unwind-protect
+     (progn
+       ,(if fresh-tty
+          '(initialize-fresh-tty)
+          '(charms:initialize))
+       (let ((charms:*standard-window* (charms:standard-window)))
+         ,@body))
+     (charms:finalize)))
+
+
 ;;;; Main ---------------------------------------------------------------------
 (defun set-dimensions ()
   (setf (values *screen-width* *screen-height*)
@@ -385,8 +416,8 @@
                  (charms/ll:endwin)))))
      ,@body))
 
-(defmacro with-boots (&body body)
-  `(charms:with-curses ()
+(defmacro with-boots ((&key fresh-tty) &body body)
+  `(with-curses (:fresh-tty ,fresh-tty)
      (charms:disable-echoing)
      (charms:enable-raw-input :interpret-control-characters t)
      (charms:enable-non-blocking-mode t)
