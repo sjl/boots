@@ -6,7 +6,6 @@
 
   :depends-on (
 
-               :cl-charms
                :iterate
                :losh
 
@@ -14,10 +13,6 @@
 
   :serial t
   :components
-  ((:module "vendor" :serial t
-    :components ((:file "quickutils-package")
-                 (:file "quickutils")))
-   (:file "package")
-   (:module "src" :serial t
-    :components
-    ((:file "main")))))
+  ((:module "src" :serial t :components
+    ((:file "package")
+     (:file "main")))))

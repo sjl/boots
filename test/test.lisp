@@ -1,2 +1,0 @@
-(ql:quickload '(:boots :losh))
-
