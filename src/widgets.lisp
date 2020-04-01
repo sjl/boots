@@ -1,4 +1,4 @@
-(in-package :boots)
+(in-package :boots/widgets)
 
 ;;;; Types --------------------------------------------------------------------
 (deftype length-designator ()
@@ -8,33 +8,21 @@
   '(or (eql t) (integer 0 *)))
 
 (deftype border-designator ()
-  '(member nil t))
+  'boolean)
 
 (deftype computed-border ()
   '(integer 0 1))
 
 (deftype location ()
-  '(or null (integer 0 *)))
+  '(integer 0 *))
 
 (deftype function-designator ()
   '(or function symbol))
 
 
 ;;;; Widgets ------------------------------------------------------------------
-(defclass* screen ()
-  ((width%)
-   (height%)
-   (root)
-
-   (text%)
-   (color%)
-   (formatting%)
-
-   (dirty%)
-
-   ))
-
 (defclass* widget ()
+  ;; Desired
   ((width  :type length-designator)
    (height :type length-designator)
    (margin-top    :type length-designator)
@@ -49,6 +37,7 @@
    (border-right  :type border-designator)
    (border-bottom :type border-designator)
    (border-left   :type border-designator)
+   ;; Computed
    (width%  :type computed-length)
    (height% :type computed-length)
    (margin-top%    :type computed-length)
@@ -68,15 +57,19 @@
    (content-x% :type location)
    (content-y% :type location)))
 
-(defmethod print-object ((o widget) s)
+(defmethod print-object ((object widget) stream)
   (flet ((slot (slot)
-           (if (slot-boundp o slot)
-             (slot-value o slot)
+           (if (slot-boundp object slot)
+             (slot-value object slot)
              '?)))
-    (print-unreadable-object (o s :type t :identity t)
-      (format s "~Ax~A ~S ~S ~S"
+    (print-unreadable-object (object stream :type t :identity t)
+      (format stream "~Ax~A @~A,~A/~A,~A ~S ~S ~S"
               (slot 'width%)
               (slot 'height%)
+              (slot 'window-x%)
+              (slot 'window-y%)
+              (slot 'content-x%)
+              (slot 'content-y%)
               (list 'm
                     (slot 'margin-top%)
                     (slot 'margin-right%)
@@ -94,87 +87,64 @@
                     (slot 'padding-left%))))))
 
 (defclass* container (widget)
-  ((children :type vector
-             :initform (make-array 4
-                         :fill-pointer 0
-                         :adjustable t))))
+  ((children :type list :initform nil)))
 
 (defclass* stack (container) ())
 (defclass* shelf (container) ())
 (defclass* pile (container) ())
 
 (defclass* canvas (widget)
-  ((draw% :type function-designator)))
+  ((drawing-function :type function-designator)))
 
-(defmethod children ((object screen))
-  (vector (root object)))
+(defclass* screen ()
+  ((root :type widget)
+   (terminal :type terminal)))
+
+;; (defmethod children ((object screen))
+;;   (list (root object)))
 
 
-(defun make-widget (class &key
-                    (width t) (height t)
-                    (margin 0) (padding 0) (border nil)
-                    (margin-top margin)
-                    (margin-right margin)
-                    (margin-bottom margin)
-                    (margin-left margin)
-                    (padding-top padding)
-                    (padding-right padding)
-                    (padding-bottom padding)
-                    (padding-left padding)
-                    (border-top border)
-                    (border-right border)
-                    (border-bottom border)
-                    (border-left border)
-                    children
-                    draw)
-  (let ((w (make-instance class
-             :width width
-             :height height
-             :margin-top margin-top
-             :margin-right margin-right
-             :margin-bottom margin-bottom
-             :margin-left margin-left
-             :padding-top padding-top
-             :padding-right padding-right
-             :padding-bottom padding-bottom
-             :padding-left padding-left
-             :border-top border-top
-             :border-right border-right
-             :border-bottom border-bottom
-             :border-left border-left)))
-    (doseq (c children)
-      (vector-push-extend c (children w)))
-    w))
+;;;; Constructors -------------------------------------------------------------
+(defun make-screen (terminal)
+  (make-instance 'screen
+    :root 0
+    :terminal terminal))
 
-(defun make-canvas (&key
-                    (width t) (height t)
-                    (margin 0) (padding 0) (border nil)
-                    (margin-top margin)
-                    (margin-right margin)
-                    (margin-bottom margin)
-                    (margin-left margin)
-                    (padding-top padding)
-                    (padding-right padding)
-                    (padding-bottom padding)
-                    (padding-left padding)
-                    (border-top border)
-                    (border-right border)
-                    (border-bottom border)
-                    (border-left border)
-                    (draw #'fill-with-random-chars))
-  (make-instance 'canvas
-    :width width
-    :height height
-    :margin-top margin-top
-    :margin-right margin-right
-    :margin-bottom margin-bottom
-    :margin-left margin-left
-    :padding-top padding-top
-    :padding-right padding-right
-    :padding-bottom padding-bottom
-    :padding-left padding-left
-    :border-top border-top
-    :border-right border-right
-    :border-bottom border-bottom
-    :border-left border-left
-    :draw% draw))
+(defmacro define-make-widget (name class &rest extra)
+  `(defun ,name (&key
+                 (width t) (height t)
+                 (margin 0) (padding 0) (border nil)
+                 (margin-top margin)
+                 (margin-right margin)
+                 (margin-bottom margin)
+                 (margin-left margin)
+                 (padding-top padding)
+                 (padding-right padding)
+                 (padding-bottom padding)
+                 (padding-left padding)
+                 (border-top border)
+                 (border-right border)
+                 (border-bottom border)
+                 (border-left border)
+                 ,@(mapcar #'car extra))
+     (make-instance ',class
+       :width width
+       :height height
+       :margin-top margin-top
+       :margin-right margin-right
+       :margin-bottom margin-bottom
+       :margin-left margin-left
+       :padding-top padding-top
+       :padding-right padding-right
+       :padding-bottom padding-bottom
+       :padding-left padding-left
+       :border-top border-top
+       :border-right border-right
+       :border-bottom border-bottom
+       :border-left border-left
+       ,@(apply #'append (mapcar #'cdr extra)))))
+
+(define-make-widget make-stack stack (children . (:children children)))
+(define-make-widget make-shelf shelf (children . (:children children)))
+(define-make-widget make-pile pile (children . (:children children)))
+(define-make-widget make-canvas canvas ((draw 'fill-with-random-char) . (:draw draw)))
