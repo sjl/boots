@@ -1,4 +1,4 @@
-(in-package :boots/utils)
+(in-package :boots%)
 
 (defmacro defun-inline (name args &body body)
   "Like `defun`, but declaims `name` to be `inline`."
@@ -49,3 +49,24 @@
          ,(mapcar #'build-slot-definition slots)
          ,@options))))
 
+(defun-inline in-range-p (low value high)
+  "Return whether `low` <= `value` < `high`."
+  (and (<= low value)
+       (< value high)))
+
+(alexandria:define-constant +widget-args+
+  '((width t) (height t)
+    (margin 0) (padding 0) (border nil)
+    (margin-top margin)
+    (margin-right margin)
+    (margin-bottom margin)
+    (margin-left margin)
+    (padding-top padding)
+    (padding-right padding)
+    (padding-bottom padding)
+    (padding-left padding)
+    (border-top border)
+    (border-right border)
+    (border-bottom border)
+    (border-left border))
+  :test 'equal)

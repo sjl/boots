@@ -20,7 +20,10 @@
      (:file "utils")
      (:file "attributes")
      (:file "events")
-     (:file "widgets")
      (:module "terminals" :serial t :components
       ((:file "protocol")
-       (:file "ansi")))))))
+       (:file "ansi")))
+     (:file "widgets")
+     (:file "sizing")
+     (:file "drawing")
+     (:file "api")))))

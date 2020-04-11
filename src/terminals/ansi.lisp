@@ -6,8 +6,6 @@
 (defclass* ansi-terminal (terminal)
   ((input :type stream)
    (output :type stream)
-   (width :type size)
-   (height :type size)
    (characters :type (simple-array character (* *)))
    (attributes :type (simple-array attribute (* *)))))
 
@@ -18,7 +16,7 @@
                                 :element-type 'character
                                 :initial-element #\space)
         (attributes terminal) (make-array (list height width)
-                                :element-type 'attribute
+                                :element-type 'boots%:attribute
                                 :initial-element 0))
   (values))
 
@@ -59,7 +57,16 @@
       (mansion::bg-default stream)))
   (values))
 
+(defun clear (array value)
+  (destructuring-bind (h w) (array-dimensions array)
+    (dotimes (y h)
+      (dotimes (x w)
+        (setf (aref array y x) value)))))
+
+
 (defmethod blit ((terminal ansi-terminal))
+  ;; todo is it worth using a string-output-stream here to write everything into
+  ;; the terminal at once?
   (let ((chars (characters terminal))
         (attrs (attributes terminal))
         (stream (output terminal))
@@ -72,18 +79,16 @@
           (unless (= attr last-attr)
             (blit-attr attr stream))
           (write-char char stream)))
-      (terpri stream))))
+      (mansion::reset stream)
+      (terpri stream))
+    (clear chars #\space)
+    (clear attrs 0)))
 
-(defmethod draw ((terminal ansi-terminal) x y (thing character) &optional attr)
-  (setf (aref (characters terminal) y x) thing)
+(defmethod put ((terminal ansi-terminal) x y character &optional attr)
+  (setf (aref (characters terminal) y x) character)
   (when attr
     (setf (aref (attributes terminal) y x) attr))
   (values))
-
-(defun paint (terminal ch)
-  (dotimes (y (height terminal))
-    (dotimes (x (width terminal))
-      (draw terminal x y ch))))
 
 (defmethod read-event ((terminal ansi-terminal))
   (read-char (input terminal)))

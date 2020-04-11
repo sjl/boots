@@ -1,15 +1,15 @@
-(in-package :boots)
+(in-package :boots%)
 
 ;;;; Utils --------------------------------------------------------------------
 (defun slots->list (objects slots)
-  (loop :for object :across objects
+  (loop :for object :in objects
         :appending (loop :for slot :in slots
                          :collect (slot-value object slot))))
 
 (defun list->slots (objects slots values)
   (loop
     :with n = (length slots)
-    :for object :across objects
+    :for object :in objects
     :for vals :on values :by (alexandria:curry #'nthcdr n)
     :do (loop :for slot :in slots
               :for value :in vals
@@ -26,19 +26,19 @@
 
 
 (defun minimum-positive (list)
-  (iterate
-    (for n :in list)
-    (when (plusp n)
-      (minimizing n))))
+  (loop :with result = nil
+        :for n :in list
+        :when (and (plusp n)
+                   (or (null result)
+                       (< n result)))
+        :do (setf result n)
+        :finally (return result)))
 
 (defun count-positive (list)
   (count-if #'plusp list))
 
 (defun safe-sum (list)
-  (iterate
-    (for n :in list)
-    (when (numberp n)
-      (summing n))))
+  (loop :for n :in list :when (numberp n) :sum n))
 
 
 (defun total-width (widget)
@@ -256,27 +256,27 @@
 
 (defmethod grow-children ((s stack))
   (grow% (children s) (height% s) :vertical)
-  (loop :for child :across (children s)
-        :do (grow% (vector child) (width% s) :horizontal)))
+  (loop :for child :in (children s)
+        :do (grow% (list child) (width% s) :horizontal)))
 
 (defmethod grow-children ((s shelf))
   (grow% (children s) (width% s) :horizontal)
   (loop
-    :for child :across (children s)
-    :do (grow% (vector child) (height% s) :vertical)))
+    :for child :in (children s)
+    :do (grow% (list child) (height% s) :vertical)))
 
 (defmethod grow-children ((p pile))
   (loop
     :with w = (width% p)
     :with h = (height% p)
-    :for child :across (children p)
-    :for children = (vector child)
+    :for child :in (children p)
+    :for children = (list child)
     :do (progn (grow% children w :horizontal)
                (grow% children h :vertical)))
   (values))
 
 (defmethod grow-children ((s screen))
-  (let ((children (vector (root s))))
+  (let ((children (list (root s))))
     (grow% children (width% s) :horizontal)
     (grow% children (height% s) :vertical))
   (values))
@@ -315,27 +315,27 @@
 (defmethod shrink-children ((s stack))
   (shrink% (children s) (height% s) :vertical)
   (loop
-    :for child :across (children s)
-    :do (shrink% (vector child) (width% s) :horizontal)))
+    :for child :in (children s)
+    :do (shrink% (list child) (width% s) :horizontal)))
 
 (defmethod shrink-children ((s shelf))
   (shrink% (children s) (width% s) :horizontal)
   (loop
-    :for child :across (children s)
-    :do (shrink% (vector child) (height% s) :vertical)))
+    :for child :in (children s)
+    :do (shrink% (list child) (height% s) :vertical)))
 
 (defmethod shrink-children ((p pile))
   (loop
     :with w = (width% p)
     :with h = (height% p)
-    :for child :across (children p)
-    :for children = (vector child)
+    :for child :in (children p)
+    :for children = (list child)
     :do (progn (shrink% children w :horizontal)
                (shrink% children h :vertical)))
   (values))
 
 (defmethod shrink-children ((s screen))
-  (let ((children (vector (root s))))
+  (let ((children (list (root s))))
     (shrink% children (width% s) :horizontal)
     (shrink% children (height% s) :vertical))
   (values))
@@ -351,7 +351,7 @@
   nil)
 
 (defmethod resize ((s screen))
-  (compute-desired (root s) (width% s) (height% s))
+  (compute-desired (root s) (width s) (height s))
   (grow-children s)
   (shrink-children s)
   (resize (root s)))
@@ -359,7 +359,7 @@
 (defmethod resize ((c container))
   (loop :with w = (width% c)
         :with h = (height% c)
-        :for child :across (children c)
+        :for child :in (children c)
         :do (compute-desired child w h))
   (grow-children c)
   (shrink-children c)
@@ -393,7 +393,7 @@
 
 (defmethod reposition ((p pile) x y)
   (reposition-widget p x y)
-  (loop :for c :across (children p)
+  (loop :for c :in (children p)
         :do (reposition c x y))
   (values))
 
@@ -401,7 +401,7 @@
   (reposition-widget s x y)
   (loop :with x = (content-x% s)
         :with y = (content-y% s)
-        :for c :across (children s) :do
+        :for c :in (children s) :do
         (reposition c x y)
         (incf y (total-height c)))
   (values))
@@ -410,28 +410,24 @@
   (reposition-widget s x y)
   (loop :with x = (content-x% s)
         :with y = (content-y% s)
-        :for c :across (children s) :do
+        :for c :in (children s) :do
         (reposition c x y)
         (incf x (total-width c)))
   (values))
 
 
 ;;;; API ----------------------------------------------------------------------
-(defun resize-screen (screen width height)
-  "Resize `screen` to `width`, `height` and recompute child sizes/positions."
-  (setf (width% screen) width
-        (height% screen) height
-        (text% screen) (make-array (list width height)
-                         :initial-element #\space
-                         :element-type 'character)
-        (color% screen) (make-array (list width height)
-                          :initial-element 0
-                          :element-type '(unsigned-byte 48))
-        (formatting% screen) (make-array (list width height)
-                               :element-type '(unsigned-byte 1))
-        (dirty% screen) (make-array (list width height)
-                          :element-type 'boolean
-                          :initial-element nil))
-  (resize screen)
-  (reposition screen 0 0))
+(defun ensure-screen-resized (screen)
+  "Ensure `screen` matches its terminal's dimensions.
 
+  Child sizes/positions will be recomputed if necessary.
+
+  "
+  (let ((tw (boots/terminals:width (terminal screen)))
+        (th (boots/terminals:height (terminal screen))))
+    (unless (and (= tw (width screen))
+                 (= th (height screen)))
+      (setf (width screen) tw
+            (height screen) th)
+      (resize screen)
+      (reposition screen 0 0))))

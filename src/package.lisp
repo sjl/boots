@@ -1,36 +1,121 @@
-(defpackage :boots/utils
+;;;; Low-level implementation -------------------------------------------------
+(defpackage :boots%
   (:use :cl)
-  (:export :_ :defun-inline :defclass*))
-
-(defpackage :boots/attributes
-  (:use :cl :boots/utils)
   (:export
+    :defun-inline :_ :defclass* :in-range-p
+
     :attribute
-    :attr :rgb :rgb*
-    :with-fg :with-bg
-    :boldp :italicp :underlinep))
+    :attr
+    :rgb :rgb*
+    :default
+    :boldp :italicp :underlinep
+    :with-fg :with-bg :with-color
+    :r :g :b
 
-(defpackage :boots/events
-  (:use :cl :boots/utils)
-  (:export
-    :event))
+    :event
 
-(defpackage :boots/widgets
-  (:use :cl :boots/utils)
-  (:export
-    :event))
+    :*border-top-left-char*
+    :*border-top-right-char*
+    :*border-bottom-left-char*
+    :*border-bottom-right-char*
+    :*border-vertical-char*
+    :*border-horizontal-char*
 
+    :pad-w
+    :pad-h
+    :draw
+    :redraw-screen
+
+    :+widget-args+
+    :make-stack
+    :make-shelf
+    :make-pile
+    :make-canvas
+    :make-screen
+
+    :root
+    :children))
+
+
+;;;; Terminals ----------------------------------------------------------------
 (defpackage :boots/terminals
-  (:use :cl :boots/utils)
-  (:export :terminal :blit :draw :read-event :read-event-no-hang))
+  (:use :cl :boots%)
+  (:export
+    :terminal
+    :blit
+    :put
+    :read-event
+    :read-event-no-hang
+    :width
+    :height))
 
 (defpackage :boots/terminals/ansi
-  (:use :cl
-    :boots/utils
-    :boots/terminals
-    :boots/attributes)
-  (:export))
+  (:use :cl :boots/terminals :boots%)
+  (:export :make-ansi-terminal))
 
+
+;;;; User-facing API ----------------------------------------------------------
 (defpackage :boots
-  (:use :cl :boots/utils)
-  (:export))
+  (:use :cl)
+  (:import-from :boots%
+    :attr
+    :rgb
+    :rgb*
+    :default
+
+    :event
+
+    :*border-top-left-char*
+    :*border-top-right-char*
+    :*border-bottom-left-char*
+    :*border-bottom-right-char*
+    :*border-vertical-char*
+    :*border-horizontal-char*
+
+    :draw
+
+    :make-stack
+    :make-shelf
+    :make-pile
+    :make-canvas
+    :make-screen
+
+    :root
+    :children)
+  (:export
+    :attr
+    :rgb
+    :rgb*
+    :default
+
+    :event
+
+    :*border-top-left-char*
+    :*border-top-right-char*
+    :*border-bottom-left-char*
+    :*border-bottom-right-char*
+    :*border-vertical-char*
+    :*border-horizontal-char*
+
+    :draw
+    :width
+    :height
+
+    :make-stack
+    :make-shelf
+    :make-pile
+    :make-canvas
+
+    :stack
+    :shelf
+    :pile
+    :canvas
+
+    :root
+    :children
+
+    :*screen*
+    :with-boots
+    :redraw
+    :read-event
+    :read-event-no-hang))

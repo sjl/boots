@@ -1,4 +1,33 @@
-(in-package :boots/widgets)
+(in-package :boots%)
+
+;;;; Notes --------------------------------------------------------------------
+;;; Widgets are laid out much like the box model in HTML:
+;;;
+;;;                                                -
+;;;                                                |   margin
+;;;                                                -
+;;;            +---------------------------------+     border
+;;;            |                                 | -
+;;;            |                                 | |   padding
+;;;            |                                 | -
+;;;            |       .......................   | -
+;;;            |       .......................   | |
+;;;            |       ......content..........   | |   height
+;;;            |       .......................   | |
+;;;            |       .......................   | |
+;;;            |       .......................   | -
+;;;            |                                 |
+;;;            +---------------------------------+     border
+;;;                    |---------------------|         width
+;;;             |-----|                       |-|      padding
+;;; |---------|                                        margin
+;;;
+;;; For each measure (width, height, padding-(top|right|bottom|left), etc)
+;;; widgets generally have two slots:
+;;;
+;;; * foo:  the DESIRED measure, as a designator (e.g. 100, 0.5, t).
+;;; * foo%: the COMPUTED measure, always a nonnegative integer (if bound).
+
 
 ;;;; Types --------------------------------------------------------------------
 (deftype length-designator ()
@@ -70,17 +99,17 @@
               (slot 'window-y%)
               (slot 'content-x%)
               (slot 'content-y%)
-              (list 'm
+              (list "m"
                     (slot 'margin-top%)
                     (slot 'margin-right%)
                     (slot 'margin-bottom%)
                     (slot 'margin-left%))
-              (list 'b
+              (list "b"
                     (slot 'border-top%)
                     (slot 'border-right%)
                     (slot 'border-bottom%)
                     (slot 'border-left%))
-              (list 'p
+              (list "p"
                     (slot 'padding-top%)
                     (slot 'padding-right%)
                     (slot 'padding-bottom%)
@@ -94,21 +123,31 @@
 (defclass* pile (container) ())
 
 (defclass* canvas (widget)
-  ((drawing-function :type function-designator)))
+  ((drawing-function :type function-designator :initarg :draw)))
 
 (defclass* screen ()
   ((root :type widget)
-   (terminal :type terminal)))
+   (terminal :type boots/terminals:terminal)
+   ;; todo: make these more specific
+   (width  :type (and fixnum (integer 0)))
+   (height :type (and fixnum (integer 0)))))
 
-;; (defmethod children ((object screen))
-;;   (list (root object)))
+(defmethod width% ((screen screen))
+  (width screen))
+
+(defmethod height% ((screen screen))
+  (height screen))
 
 
 ;;;; Constructors -------------------------------------------------------------
-(defun make-screen (terminal)
-  (make-instance 'screen
-    :root 0
-    :terminal terminal))
+(defun make-screen (terminal &optional root)
+  (let ((result (make-instance 'screen
+                  :terminal terminal
+                  :width 1 ; dummy fixnums, will get clobbered later
+                  :height 1)))
+    (when root
+      (setf (root result) root))
+    result))
 
 (defmacro define-make-widget (name class &rest extra)
   `(defun ,name (&key
