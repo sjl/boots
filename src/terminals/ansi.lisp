@@ -3,7 +3,7 @@
 (defparameter *debug* nil)
 
 
-;;;; Plumbing ------------------------------------------------------------------
+;;;; Plumbing -----------------------------------------------------------------
 (define-modify-macro logandf (&rest args) logand)
 
 (defun e (stream string)
@@ -27,7 +27,8 @@
     ((eql stream *error-output*) +STDERR+)
     (t
      #+sbcl (sb-posix:file-descriptor stream)
-     #-(or sbcl) (error "Unsupported implementation."))))
+     #-(or sbcl)
+     (error "Don't know how to get a file descriptor for a stream in this implementation."))))
 
 (cffi:defcvar "errno" :int)
 (cffi:defcfun "strerror" :string
@@ -89,36 +90,27 @@
       (cffi:foreign-free termios))))
 
 
-;;;; SIGWINCH -----------------------------------------------------------------
-(alexandria:define-constant +SIGWINCH+ 28)
-
-
-(defparameter *sigwinch* nil)
-
-(cffi:defcallback handle-sigwinch :void ((signo :int))
-  (declare (ignore signo))
-  (setf *sigwinch* t))
-
-(defun install-sigwinch-handler (&optional (handler (cffi:callback handle-sigwinch)))
-  (cffi:foreign-funcall "signal" :int +SIGWINCH+ :pointer handler :pointer))
-
-
 ;;;; Terminal -----------------------------------------------------------------
 (deftype size ()
   `(integer 0 ,(1- array-dimension-limit)))
 
+(deftype char-array ()
+  '(simple-array character (* *)))
+
+(deftype attr-array ()
+  '(simple-array attribute (* *)))
+
 (defclass* ansi-terminal (terminal)
   ((input :type stream)
    (output :type stream)
-   (needs-blit :type boolean :initform t)
-   (handle-sigwinch :type boolean)
    (previous-handler :initform nil)
    (original-termios :initform nil)
    (buffer :initform (make-string-output-stream))
-   (characters          :type (simple-array character (* *)))
-   (previous-characters :type (simple-array character (* *)))
-   (attributes          :type (simple-array attribute (* *)))
-   (previous-attributes :type (simple-array attribute (* *)))))
+   (characters          :type char-array)
+   (previous-characters :type char-array)
+   (attributes          :type attr-array)
+   (previous-attributes :type attr-array)))
+
 
 (defun resize (terminal)
   (multiple-value-bind (width height) (get-terminal-size terminal)
@@ -143,67 +135,82 @@
           (previous-attributes terminal)
           (make-array (list height width)
             :element-type 'boots%:attribute
-            :initial-element (boots%:invalid-attribute))
-          ))
+            :initial-element (boots%:invalid-attribute))))
   (values))
+
+(defun needs-resize-p (terminal)
+  (multiple-value-bind (width height) (get-terminal-size terminal)
+    (or (/= width (width terminal))
+        (/= height (height terminal)))))
 
 
 (defun make-ansi-terminal (&key
-                           (handle-sigwinch t)
                            (input-stream *standard-input*)
                            (output-stream *standard-output*))
   (make-instance 'ansi-terminal
-    :handle-sigwinch handle-sigwinch
     :input input-stream
     :output output-stream))
 
-(defun blit-attr (attr stream)
+(defun blit-attr (prev attr stream)
+  (declare (optimize speed)
+           (type attribute prev attr))
   (when (zerop attr)
     (mansion::reset stream)
     (return-from blit-attr))
-  ;; todo optimize this process further
-  (if (boldp attr)
-    (mansion::bold stream)
-    (mansion::no-bold stream))
-  (if (italicp attr)
-    (mansion::italic stream)
-    (mansion::no-italic stream))
-  (if (underlinep attr)
-    (mansion::underline stream)
-    (mansion::no-underline stream))
-  (with-fg (c tc r g b) attr
-    (if c
-      (if tc
-        (mansion::truecolor r g b stream)
-        (mansion::rgb r g b stream))
-      (mansion::fg-default stream)))
-  (with-bg (c tc r g b) attr
-    (if c
-      (if tc
-        (mansion::bg-truecolor r g b stream)
-        (mansion::bg-rgb r g b stream))
-      (mansion::bg-default stream)))
-  (values))
+  (cond ((and (boldp attr) (not (boldp prev)))
+         (mansion::bold stream))
+        ((and (not (boldp attr)) (boldp prev))
+         (mansion::no-bold stream)))
+  (cond ((and (italicp attr) (not (italicp prev)))
+         (mansion::italic stream))
+        ((and (not (italicp attr)) (italicp prev))
+         (mansion::no-italic stream)))
+  (cond ((and (underlinep attr) (not (underlinep prev)))
+         (mansion::underline stream))
+        ((and (not (underlinep attr)) (underlinep prev))
+         (mansion::no-underline stream)))
+  (when (/= (fg attr) (fg prev))
+    (with-fg (c tc r g b) attr
+      (if c
+        (if tc
+          (mansion::truecolor r g b stream)
+          (mansion::rgb r g b stream))
+        (mansion::fg-default stream))))
+  (when (/= (bg attr) (bg prev))
+    (with-bg (c tc r g b) attr
+      (if c
+        (if tc
+          (mansion::bg-truecolor r g b stream)
+          (mansion::bg-rgb r g b stream))
+        (mansion::bg-default stream))))
+  nil)
 
 (defun clear-array (array value)
+  #+sbcl
+  (fill (sb-ext:array-storage-vector array) value)
+  #-(or sbcl)
   (destructuring-bind (h w) (array-dimensions array)
     (dotimes (y h)
       (dotimes (x w)
         (setf (aref array y x) value)))))
 
 
-(defmethod blit ((terminal ansi-terminal))
-  (setf *sigwinch* nil)
+(defun blit% (terminal)
+  (declare (optimize (speed 3) (debug 1) (safety 1))
+           (type terminal terminal))
   (let ((chars (characters terminal))
         (attrs (attributes terminal))
         (pchars (previous-characters terminal))
         (pattrs (previous-attributes terminal))
         (buffer (buffer terminal))
         (stream (output terminal))
-        (last-attr -1)
+        (last-attr (boots%:default))
         (move t))
-    (dotimes (y (height terminal))
-      (dotimes (x (width terminal))
+    (declare (type char-array chars pchars)
+             (type attr-array attrs pattrs))
+    (mansion::reset stream)
+    (dotimes (y (the fixnum (height terminal)))
+      (dotimes (x (the fixnum (width terminal)))
         (let ((char (aref chars y x))
               (attr (aref attrs y x))
               (pchar (aref pchars y x))
@@ -213,11 +220,12 @@
             (setf move t)
             (progn (when move
                      (mansion::move-cursor (1+ y) (1+ x) buffer)
-                     (setf move nil last-attr -1))
+                     (setf move nil))
                    (unless (= attr last-attr)
-                     (blit-attr attr buffer))
+                     (blit-attr last-attr attr buffer)
+                     (setf last-attr attr))
                    (write-char char buffer)))))
-      (setf move t last-attr -1))
+      (setf move t))
     ;; todo let user move cursor
     (write-string (get-output-stream-string buffer) stream)
     (force-output stream))
@@ -226,18 +234,28 @@
   (clear-array (characters terminal) #\Space)
   (clear-array (attributes terminal) (boots%:default)))
 
-(defmethod paint ((terminal ansi-terminal) x y width height character &optional (attr (boots%:default)))
-  (declare (optimize speed))
-  (check-types fixnum x y width height)
-  (check-type character character)
+(defmethod blit ((terminal ansi-terminal))
+  (blit% terminal))
+
+(defun paint% (terminal x y width height character attr)
+  (declare (optimize (speed 3) (debug 1) (safety 1))
+           (type fixnum x y width height)
+           (type character character)
+           (type attribute attr))
   (let ((chars (characters terminal))
         (attrs (attributes terminal)))
-    (declare (type (simple-array character (* *)) chars)
-             (type (simple-array attribute (* *)) attrs))
-    (loop :for x% fixnum :from x :repeat width :do
-          (loop :for y% fixnum :from y :repeat height :do
+    (declare (type char-array chars)
+             (type attr-array attrs))
+    (loop :for x% fixnum :from x :below (the fixnum (+ x width)) :do
+          (loop :for y% fixnum :from y :below (the fixnum (+ y height)) :do
                 (setf (aref chars y% x%) character
                       (aref attrs y% x%) attr)))))
+
+(defmethod paint ((terminal ansi-terminal) x y width height character &optional attr)
+  (check-types fixnum x y width height)
+  (check-type character character)
+  (check-type attr (or null attribute))
+  (paint% terminal x y width height character (or attr (boots%:default))))
 
 (defmethod put ((terminal ansi-terminal) x y character &optional attr)
   (declare (optimize speed))
@@ -248,10 +266,15 @@
     (let ((attrs (attributes terminal)))
       (declare (type (simple-array attribute (* *)) attrs))
       (setf (aref attrs y x) attr)))
+  nil)
+
+(defmethod prep ((terminal ansi-terminal))
+  (when (needs-resize-p terminal)
+    (resize terminal))
   (values))
 
 (defmethod read-event-no-hang ((terminal ansi-terminal))
-  (when *sigwinch*
+  (when (needs-resize-p terminal)
     (resize terminal)
     (boots:redraw))
   (read-char-no-hang (input terminal)))
@@ -261,16 +284,10 @@
   (clear-terminal (output terminal))
   (resize terminal)
   (mansion::hide-cursor (output terminal))
-  (when (handle-sigwinch terminal)
-    (setf (previous-handler terminal) (install-sigwinch-handler)))
   (enable-raw terminal))
 
 (defmethod stop ((terminal ansi-terminal))
   (disable-raw terminal)
-  (when (handle-sigwinch terminal)
-    (install-sigwinch-handler (previous-handler terminal)))
   (clear-terminal (output terminal))
   (mansion::show-cursor (output terminal))
-  (restore-terminal (output terminal))
-  (print (original-termios terminal)))
-
+  (restore-terminal (output terminal)))

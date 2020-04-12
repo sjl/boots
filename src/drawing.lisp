@@ -38,6 +38,7 @@
 
 (defun redraw-screen (screen)
   (check-type screen screen)
+  (boots/terminals:prep (terminal screen))
   (ensure-screen-resized screen)
   ;; todo cache the pad in the screen
   (redraw (root screen) (make-pad :terminal (terminal screen)))
@@ -77,21 +78,41 @@
 (defgeneric draw (pad x y thing &optional attr))
 
 (defmethod draw (pad x y (thing character) &optional attr)
-  (assert (char/= #\newline thing) (thing) "Cannot draw a newline into a cell.")
+  (declare (optimize speed))
+  (check-types fixnum x y)
+  (check-type pad pad)
+  (assert (char/= #\newline thing) () "Cannot draw a newline into a cell.")
   (when (and (in-range-p 0 x (pad-w pad))
              (in-range-p 0 y (pad-h pad)))
     (boots/terminals:put (pad-terminal pad)
                          (+ x (pad-x pad))
                          (+ y (pad-y pad))
-                         thing attr)))
+                         thing attr))
+  nil)
 
 (defmethod draw (pad x y (thing string) &optional attr)
+  (check-types fixnum x y)
+  (check-type pad pad)
   ;; todo optimize this by inlining the guts of (draw ... char ...)
   (loop :with x% = x
         :with y% = y
         :for char :across thing
         :do (if (eql #\newline char)
               (setf x% x y% (1+ y%))
-                (progn
-                  (draw pad x% y% char attr)
-                  (incf x%)))))
+              (progn
+                (draw pad x% y% char attr)
+                (incf x%)))))
+
+(defun paint (pad character &key
+              (x 0) (y 0) (width (pad-w pad)) (height (pad-h pad)) attr)
+  (check-types fixnum x y)
+  (check-type pad pad)
+  (when (and (in-range-p 0 x (pad-w pad))
+             (in-range-p 0 y (pad-h pad)))
+    (boots/terminals:paint (pad-terminal pad)
+                           (+ x (pad-x pad))
+                           (+ y (pad-y pad))
+                           (max (pad-w pad) width)
+                           (max (pad-h pad) height)
+                           character
+                           attr)))

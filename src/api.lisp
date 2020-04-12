@@ -36,7 +36,6 @@
 (defun height (pad)
   (boots%:pad-h pad))
 
-
 (defmacro define-widget-macro (name constructor extra-arglist &rest widget-specific-args)
   `(defmacro ,name ((&rest args &key
                            (width t) (height t)

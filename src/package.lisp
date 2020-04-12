@@ -11,7 +11,7 @@
     :invalid-attribute
     :boldp :italicp :underlinep
     :with-fg :with-bg :with-color
-    :r :g :b
+    :fg :bg :r :g :b
 
     :event
 
@@ -25,6 +25,7 @@
     :pad-w
     :pad-h
     :draw
+    :paint
     :redraw-screen
 
     :make-stack
@@ -40,8 +41,10 @@
 ;;;; Terminals ----------------------------------------------------------------
 (defpackage :boots/terminals
   (:use :cl :boots%)
+  (:shadow :paint)
   (:export
     :terminal
+    :prep
     :start
     :stop
     :blit
@@ -53,7 +56,8 @@
     :height))
 
 (defpackage :boots/terminals/ansi
-  (:use :cl :boots/terminals :boots%)
+  (:use :cl :boots% :boots/terminals)
+  (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this 
   (:export :make-ansi-terminal))
 
 
@@ -76,6 +80,7 @@
     :*border-horizontal-char*
 
     :draw
+    :paint
 
     :make-stack
     :make-shelf
@@ -101,6 +106,7 @@
     :*border-horizontal-char*
 
     :draw
+    :paint
     :width
     :height
 
