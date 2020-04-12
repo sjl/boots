@@ -4,11 +4,11 @@
   :author "Steve Losh <steve@stevelosh.com>"
   :license "MIT"
 
-  ;; :defsystem-depends-on (:cffi-grovel)
+  :defsystem-depends-on (:cffi-grovel)
   :depends-on (
 
                :alexandria
-               ;; :cffi
+               :cffi
                :mansion
 
                )
@@ -22,6 +22,7 @@
      (:file "events")
      (:module "terminals" :serial t :components
       ((:file "protocol")
+       (:cffi-grovel-file "ansi-grovel")
        (:file "ansi")))
      (:file "widgets")
      (:file "sizing")

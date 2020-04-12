@@ -3,13 +3,13 @@
 ;;;; Notes --------------------------------------------------------------------
 ;;; For efficiency, attributes are packed into a fixnum.  This allows fast
 ;;; comparison of all attributes at once, and avoids tons of consing (assuming
-;;; we have at least 55 bit fixnums).  The bit structure looks like this:
+;;; we have at least 56 bit fixnums).  The bit structure looks like this:
 ;;;
 ;;;        6         5         4         3         2         1
 ;;;     3210987654321098765432109876543210987654321098765432109876543210
-;;;     .........BBBBBBBBBBBBBBBBBBBBBBBBBBFFFFFFFFFFFFFFFFFFFFFFFFFFuib
+;;;     ........xBBBBBBBBBBBBBBBBBBBBBBBBBBFFFFFFFFFFFFFFFFFFFFFFFFFFuib
 ;;;
-;;; b = bold, i = italic, u = underline, F = fg color, B = bg color
+;;; b = bold, i = italic, u = underline, F = fg color, B = bg color, x = invalid
 ;;;
 ;;; Colors are packed into 26 bits:
 ;;;
@@ -26,7 +26,7 @@
 
 ;;;; Types --------------------------------------------------------------------
 (deftype attribute ()
-  '(unsigned-byte 53))
+  '(unsigned-byte 56))
 
 (deftype color ()
   '(unsigned-byte 26))
@@ -39,6 +39,7 @@
 
 
 ;;;; Readers ------------------------------------------------------------------
+(defun-inline invalidp (attr) (logbitp 55 attr))
 (defun-inline boldp (attr) (logbitp 0 attr))
 (defun-inline italicp (attr) (logbitp 1 attr))
 (defun-inline underlinep (attr) (logbitp 2 attr))
@@ -96,6 +97,9 @@
 
 (defun-inline default ()
   0)
+
+(defun invalid-attribute ()
+  (dpb 1 (byte 1 55) 0))
 
 
 (defun-inline attr% (bold italic underline fg bg)
@@ -168,6 +172,7 @@
   (format stream "       bold: ~A~%" (boldp attr))
   (format stream "     italic: ~A~%" (italicp attr))
   (format stream "  underline: ~A~%" (underlinep attr))
+  (format stream "    invalid: ~A~%" (invalidp attr))
   (write-string  "         FG: " stream)
   (pprint-color (fg attr) stream)
   (write-string  "         BG: " stream)

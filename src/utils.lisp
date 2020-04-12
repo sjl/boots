@@ -54,19 +54,6 @@
   (and (<= low value)
        (< value high)))
 
-(alexandria:define-constant +widget-args+
-  '((width t) (height t)
-    (margin 0) (padding 0) (border nil)
-    (margin-top margin)
-    (margin-right margin)
-    (margin-bottom margin)
-    (margin-left margin)
-    (padding-top padding)
-    (padding-right padding)
-    (padding-bottom padding)
-    (padding-left padding)
-    (border-top border)
-    (border-right border)
-    (border-bottom border)
-    (border-left border))
-  :test 'equal)
+
+(defmacro check-types (type &rest places)
+  `(progn ,@(loop :for place :in places :collect `(check-type ,place ,type))))

@@ -425,8 +425,10 @@
   "
   (let ((tw (boots/terminals:width (terminal screen)))
         (th (boots/terminals:height (terminal screen))))
-    (unless (and (= tw (width screen))
-                 (= th (height screen)))
+    (unless (and
+              nil ; todo can we get around having to do this every time somehow?
+              (= tw (width screen))
+              (= th (height screen)))
       (setf (width screen) tw
             (height screen) th)
       (resize screen)

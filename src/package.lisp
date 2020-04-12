@@ -2,12 +2,13 @@
 (defpackage :boots%
   (:use :cl)
   (:export
-    :defun-inline :_ :defclass* :in-range-p
+    :defun-inline :_ :defclass* :in-range-p :check-types
 
     :attribute
     :attr
     :rgb :rgb*
     :default
+    :invalid-attribute
     :boldp :italicp :underlinep
     :with-fg :with-bg :with-color
     :r :g :b
@@ -26,7 +27,6 @@
     :draw
     :redraw-screen
 
-    :+widget-args+
     :make-stack
     :make-shelf
     :make-pile
@@ -42,8 +42,11 @@
   (:use :cl :boots%)
   (:export
     :terminal
+    :start
+    :stop
     :blit
     :put
+    :paint
     :read-event
     :read-event-no-hang
     :width

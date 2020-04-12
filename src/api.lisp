@@ -9,9 +9,12 @@
     'with-boots))
 
 (defmacro with-boots (terminal &body body)
-  `(let* ((*terminal* ,terminal)
-          (*screen* (boots%:make-screen *terminal*)))
-     ,@body))
+  (alexandria:once-only (terminal)
+    `(let* ((*terminal* ,terminal)
+            (*screen* (boots%:make-screen ,terminal)))
+       (boots/terminals:start ,terminal)
+       (unwind-protect (progn ,@body)
+         (boots/terminals:stop ,terminal)))))
 
 
 (defun read-event ()

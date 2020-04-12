@@ -21,11 +21,16 @@
 
 (defgeneric redraw (widget pad))
 
+(defparameter *wat* nil)
+
 (defmethod redraw :before ((widget widget) pad)
   (setf (pad-w pad) (width% widget)
         (pad-h pad) (height% widget)
         (pad-x pad) (content-x% widget)
         (pad-y pad) (content-y% widget))
+  (when (= 10 (pad-w pad))
+    (setf *wat* (list (pad-x pad) (pad-y pad)
+                      (pad-w pad) (pad-h pad))))
   (clear-content pad)
   (draw-frame widget pad))
 
@@ -128,9 +133,10 @@
 
 
 (defun clear-content (pad)
-  (loop :for y :from (pad-y pad) :repeat (pad-h pad) :do
-        (loop :for x :from (pad-x pad) :repeat (pad-w pad) :do
-              (draw-char pad x y #\space))))
+  (boots/terminals:paint (pad-terminal pad)
+                         (pad-x pad) (pad-y pad)
+                         (pad-w pad) (pad-h pad)
+                         #\space 0))
 
 (defgeneric draw (pad x y thing &optional attr))
 
