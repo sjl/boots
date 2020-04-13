@@ -8,8 +8,7 @@
     :attribute
     :attr
     :rgb :rgb*
-    :default
-    :invalid-attribute
+    :default :invalid-attribute
     :boldp :italicp :underlinep
     :with-fg :with-bg :with-color
     :fg :bg :r :g :b
@@ -23,17 +22,18 @@
     :*border-vertical-char*
     :*border-horizontal-char*
 
+    :pad
     :pad-w
     :pad-h
     :draw
     :paint
     :redraw-screen
 
-    :make-stack
-    :make-shelf
-    :make-pile
-    :make-canvas
-    :make-screen
+    :stack :make-stack
+    :shelf :make-shelf
+    :pile :make-pile
+    :canvas :make-canvas
+    :screen :make-screen
 
     :root
     :children))

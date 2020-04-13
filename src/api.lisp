@@ -1,29 +1,22 @@
 (in-package :boots)
 
-(boots%:defun-inline ensure-initialized ()
-  (assert *screen* () "Boots must be initialized using ~A before redrawing."
-    'with-boots))
-
-
 (defmacro with-screen ((symbol terminal &key root) &body body)
   `(let* ((,symbol (boots%:make-screen ,terminal :root ,root))
           ,@(unless (eql symbol '*screen*)
               `((*screen* ,symbol))))
      ,@body))
 
-
 (defun read-event (&optional (screen *screen*))
-  (ensure-initialized)
+  (check-type screen boots%:screen)
   (boots/terminals:read-event (boots%::terminal screen)))
 
 (defun read-event-no-hang (&optional (screen *screen*))
-  (ensure-initialized)
+  (check-type screen boots%:screen)
   (boots/terminals:read-event-no-hang (boots%::terminal screen)))
 
 (defun redraw (&optional (screen *screen*))
-  (ensure-initialized)
+  (check-type screen boots%:screen)
   (boots%:redraw-screen screen))
-
 
 (defun width (pad)
   (boots%:pad-w pad))
