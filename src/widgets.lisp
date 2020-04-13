@@ -140,7 +140,7 @@
 
 
 ;;;; Constructors -------------------------------------------------------------
-(defun make-screen (terminal &optional root)
+(defun make-screen (terminal &key root)
   (let ((result (make-instance 'screen
                   :terminal terminal
                   :width 1 ; dummy fixnums, will get clobbered later

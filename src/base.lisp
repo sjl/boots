@@ -1,5 +1,17 @@
 (in-package :boots%)
 
+;;;; State --------------------------------------------------------------------
+(defparameter *screen* nil)
+
+(defparameter *border-top-left-char* #\+)
+(defparameter *border-top-right-char* #\+)
+(defparameter *border-bottom-left-char* #\+)
+(defparameter *border-bottom-right-char* #\+)
+(defparameter *border-vertical-char* #\|)
+(defparameter *border-horizontal-char* #\-)
+
+
+;;;; Utilities ----------------------------------------------------------------
 (defmacro defun-inline (name args &body body)
   "Like `defun`, but declaims `name` to be `inline`."
   `(progn
@@ -53,7 +65,6 @@
   "Return whether `low` <= `value` < `high`."
   (and (<= low value)
        (< value high)))
-
 
 (defmacro check-types (type &rest places)
   `(progn ,@(loop :for place :in places :collect `(check-type ,place ,type))))

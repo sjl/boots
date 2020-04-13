@@ -2,6 +2,7 @@
 (defpackage :boots%
   (:use :cl)
   (:export
+    :*screen*
     :defun-inline :_ :defclass* :in-range-p :check-types
 
     :attribute
@@ -45,8 +46,6 @@
   (:export
     :terminal
     :prep
-    :start
-    :stop
     :blit
     :put
     :paint
@@ -58,13 +57,15 @@
 (defpackage :boots/terminals/ansi
   (:use :cl :boots% :boots/terminals)
   (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this 
-  (:export :make-ansi-terminal))
+  (:export :with-ansi-terminal))
 
 
 ;;;; User-facing API ----------------------------------------------------------
 (defpackage :boots
   (:use :cl)
   (:import-from :boots%
+    :*screen*
+
     :attr
     :rgb
     :rgb*
@@ -86,11 +87,12 @@
     :make-shelf
     :make-pile
     :make-canvas
-    :make-screen
 
     :root
     :children)
   (:export
+    :*screen*
+
     :attr
     :rgb
     :rgb*
@@ -115,6 +117,8 @@
     :make-pile
     :make-canvas
 
+    :with-screen
+
     :stack
     :shelf
     :pile
@@ -123,8 +127,6 @@
     :root
     :children
 
-    :*screen*
-    :with-boots
     :redraw
     :read-event
     :read-event-no-hang))

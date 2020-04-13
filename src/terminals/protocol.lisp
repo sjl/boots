@@ -10,9 +10,6 @@
 (defgeneric put (terminal x y character &optional attr))
 (defgeneric paint (terminal x y width height character &optional attr))
 
-(defgeneric start (terminal))
-(defgeneric stop (terminal))
-
 (defgeneric read-event (terminal))
 (defgeneric read-event-no-hang (terminal))
 

@@ -75,33 +75,60 @@
     (boots/terminals:paint term left top tw th #\space)))
 
 
-(defgeneric draw (pad x y thing &optional attr))
-
-(defmethod draw (pad x y (thing character) &optional attr)
-  (declare (optimize speed))
-  (check-types fixnum x y)
-  (check-type pad pad)
-  (assert (char/= #\newline thing) () "Cannot draw a newline into a cell.")
+(defun draw-character% (pad x y character attr)
+  (declare (optimize speed)
+           (type pad pad)
+           (type fixnum x y)
+           (type character character))
   (when (and (in-range-p 0 x (pad-w pad))
              (in-range-p 0 y (pad-h pad)))
     (boots/terminals:put (pad-terminal pad)
                          (+ x (pad-x pad))
                          (+ y (pad-y pad))
-                         thing attr))
-  nil)
+                         character attr))
+  (values (1+ x) y))
 
-(defmethod draw (pad x y (thing string) &optional attr)
-  (check-types fixnum x y)
-  (check-type pad pad)
-  ;; todo optimize this by inlining the guts of (draw ... char ...)
-  (loop :with x% = x
-        :with y% = y
-        :for char :across thing
+(defun draw-string% (pad x y string attr)
+  (declare (optimize speed)
+           (type pad pad)
+           (type fixnum x y)
+           (type string string))
+  (loop :with x% fixnum = x
+        :with y% fixnum = y
+        :for char :across string
         :do (if (eql #\newline char)
               (setf x% x y% (1+ y%))
               (progn
-                (draw pad x% y% char attr)
-                (incf x%)))))
+                (draw-character% pad x% y% char attr)
+                (incf x%)))
+        :finally (return (values x% y%))))
+
+(defun draw-list% (pad x y list attr)
+  (loop
+    :with attr% = attr
+    :with x% = x
+    :with y% = y
+    :for thing :in list
+    :do (etypecase thing
+          (string (setf (values x% y%) (draw-string% pad x% y% thing attr%)))
+          (character (setf (values x% y%) (draw-character% pad x% y% thing attr%)))
+          (attribute (setf attr% thing))
+          (null (setf attr% attr)))))
+
+
+(defun draw (pad x y thing &optional attr)
+  (check-types fixnum x y)
+  (check-type pad pad)
+  ;; This could be a generic function, but it's called a *lot* (possibly
+  ;; multiple times for every cell in every widget) so let's make this
+  ;; concession for performance.
+  (etypecase thing
+    (character
+      (assert (char/= #\newline thing) () "Cannot draw a newline into a cell.")
+      (draw-character% pad x y thing attr))
+    (string (draw-string% pad x y thing attr))
+    (list (draw-list% pad x y thing attr)))
+  nil)
 
 (defun paint (pad character &key
               (x 0) (y 0) (width (pad-w pad)) (height (pad-h pad)) attr)

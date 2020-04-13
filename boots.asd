@@ -17,7 +17,7 @@
   :components
   ((:module "src" :serial t :components
     ((:file "package")
-     (:file "utils")
+     (:file "base")
      (:file "attributes")
      (:file "events")
      (:module "terminals" :serial t :components

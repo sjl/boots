@@ -144,12 +144,16 @@
         (/= height (height terminal)))))
 
 
-(defun make-ansi-terminal (&key
-                           (input-stream *standard-input*)
-                           (output-stream *standard-output*))
-  (make-instance 'ansi-terminal
-    :input input-stream
-    :output output-stream))
+(defmacro with-ansi-terminal ((symbol &key
+                                      (input-stream '*standard-input*)
+                                      (output-stream '*standard-output*))
+                              &body body)
+  `(let* ((,symbol (make-instance 'ansi-terminal
+                     :input ,input-stream
+                     :output ,output-stream)))
+     (start ,symbol)
+     (unwind-protect (progn ,@body)
+       (stop ,symbol))))
 
 (defun blit-attr (prev attr stream)
   (declare (optimize speed)
@@ -279,14 +283,15 @@
     (boots:redraw))
   (read-char-no-hang (input terminal)))
 
-(defmethod start ((terminal ansi-terminal))
+
+(defun start (terminal)
   (save-terminal (output terminal))
   (clear-terminal (output terminal))
   (resize terminal)
   (mansion::hide-cursor (output terminal))
   (enable-raw terminal))
 
-(defmethod stop ((terminal ansi-terminal))
+(defun stop (terminal)
   (disable-raw terminal)
   (clear-terminal (output terminal))
   (mansion::show-cursor (output terminal))
