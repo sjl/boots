@@ -13,7 +13,8 @@
 (defparameter *state* (pop *states*))
 
 (defconstant +bold+ (boots:attr :bold t))
-(defconstant +bold-red+ (boots:attr :bold t :fg (boots:rgb* 255 0 0)))
+(defconstant +ital-green+ (boots:attr :italic t :fg (boots:rgb 60 255 99)))
+(defconstant +bold-red+ (boots:attr :bold t :fg (boots:rgb 255 60 99)))
 
 (defun elapsed ()
   (/ (- (get-internal-real-time) *started*)
@@ -39,7 +40,15 @@
                                               (:stopped *total*))))
     (draw-centered pad 1 (list "Press "
                                +bold+ "space" nil " to start/stop/reset, "
+                               +ital-green+ "C" nil " to switch between truecolor/256color, "
                                +bold-red+ "q" nil " to quit."))))
+
+(defparameter *w-bar*
+  (boots:canvas (:height 3) (pad)
+    (dotimes (v 256)
+      (boots:draw pad v 0 #\Space (boots:attr :bg (boots:rgb v 0 0)))
+      (boots:draw pad v 1 #\Space (boots:attr :bg (boots:rgb 0 v 0)))
+      (boots:draw pad v 2 #\Space (boots:attr :bg (boots:rgb 0 0 v))))))
 
 (defun handle-press ()
   (ecase *state*
@@ -50,12 +59,16 @@
 
 (defun run ()
   (boots/terminals/ansi:with-ansi-terminal (terminal)
-    (boots:with-screen (boots:*screen* terminal :root *w-timer*)
+    (boots:with-screen (boots:*screen* terminal :root (boots:stack ()
+                                                        *w-bar*
+                                                        *w-timer*))
       (loop
         (boots:redraw)
         (case (boots:read-event-no-hang)
           (#\q (return))
           (#\space (handle-press))
+          (#\C (setf (boots/terminals/ansi::truecolor terminal)
+                     (not (boots/terminals/ansi::truecolor terminal))))
           ((nil) (sleep 1/60)))))))
 
 ;; (run)

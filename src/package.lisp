@@ -6,8 +6,7 @@
     :defun-inline :_ :defclass* :in-range-p :check-types
 
     :attribute
-    :attr
-    :rgb :rgb*
+    :attr :rgb
     :default :invalid-attribute
     :boldp :italicp :underlinep
     :with-fg :with-bg :with-color
@@ -68,7 +67,6 @@
 
     :attr
     :rgb
-    :rgb*
     :default
 
     :event
@@ -95,7 +93,6 @@
 
     :attr
     :rgb
-    :rgb*
     :default
 
     :event

@@ -103,6 +103,7 @@
 (defclass* ansi-terminal (terminal)
   ((input :type stream)
    (output :type stream)
+   (truecolor :type boolean)
    (previous-handler :initform nil)
    (original-termios :initform nil)
    (buffer :initform (make-string-output-stream))
@@ -146,16 +147,29 @@
 
 (defmacro with-ansi-terminal ((symbol &key
                                       (input-stream '*standard-input*)
-                                      (output-stream '*standard-output*))
+                                      (output-stream '*standard-output*)
+                                      (truecolor t))
                               &body body)
   `(let* ((,symbol (make-instance 'ansi-terminal
                      :input ,input-stream
-                     :output ,output-stream)))
+                     :output ,output-stream
+                     :truecolor ,truecolor)))
      (start ,symbol)
      (unwind-protect (progn ,@body)
        (stop ,symbol))))
 
-(defun blit-attr (prev attr stream)
+(defun-inline simplify-color (value)
+  "Convert an 8-bit truecolor channel value to a 0-6 256color value."
+  ;; todo make this smarter
+  (cond
+    ((<= value 10) 0)
+    ((<= value 50) 1)
+    ((<= value 100) 2)
+    ((<= value 150) 3)
+    ((<= value 200) 4)
+    (t 5)))
+
+(defun blit-attr (truecolor prev attr stream)
   (declare (optimize speed)
            (type attribute prev attr))
   (when (zerop attr)
@@ -174,18 +188,20 @@
         ((and (not (underlinep attr)) (underlinep prev))
          (mansion::no-underline stream)))
   (when (/= (fg attr) (fg prev))
-    (with-fg (c tc r g b) attr
+    (with-fg (c r g b) attr
       (if c
-        (if tc
+        (if truecolor
           (mansion::truecolor r g b stream)
-          (mansion::rgb r g b stream))
+          (mansion::rgb (simplify-color r) (simplify-color g) (simplify-color b)
+                        stream))
         (mansion::fg-default stream))))
   (when (/= (bg attr) (bg prev))
-    (with-bg (c tc r g b) attr
+    (with-bg (c r g b) attr
       (if c
-        (if tc
+        (if truecolor
           (mansion::bg-truecolor r g b stream)
-          (mansion::bg-rgb r g b stream))
+          (mansion::bg-rgb (simplify-color r) (simplify-color g) (simplify-color b)
+                           stream))
         (mansion::bg-default stream))))
   nil)
 
@@ -206,6 +222,7 @@
         (attrs (attributes terminal))
         (pchars (previous-characters terminal))
         (pattrs (previous-attributes terminal))
+        (truecolor (truecolor terminal))
         (buffer (buffer terminal))
         (stream (output terminal))
         (last-attr (boots%:default))
@@ -226,7 +243,7 @@
                      (mansion::move-cursor (1+ y) (1+ x) buffer)
                      (setf move nil))
                    (unless (= attr last-attr)
-                     (blit-attr last-attr attr buffer)
+                     (blit-attr truecolor last-attr attr buffer)
                      (setf last-attr attr))
                    (write-char char buffer)))))
       (setf move t))

@@ -3,88 +3,70 @@
 ;;;; Notes --------------------------------------------------------------------
 ;;; For efficiency, attributes are packed into a fixnum.  This allows fast
 ;;; comparison of all attributes at once, and avoids tons of consing (assuming
-;;; we have at least 56 bit fixnums).  The bit structure looks like this:
+;;; we have at least 54 bit fixnums).  The bit structure looks like this:
 ;;;
-;;;        6         5         4         3         2         1
-;;;     3210987654321098765432109876543210987654321098765432109876543210
-;;;     ........xBBBBBBBBBBBBBBBBBBBBBBBBBBFFFFFFFFFFFFFFFFFFFFFFFFFFuib
+;;;        6         5         4         3         2         1             bit
+;;;     3210987654321098765432109876543210987654321098765432109876543210   index
+;;;     ..........xBBBBBBBBBBBBBBBBBBBBBBBBBFFFFFFFFFFFFFFFFFFFFFFFFFuib
 ;;;
 ;;; b = bold, i = italic, u = underline, F = fg color, B = bg color, x = invalid
 ;;;
-;;; Colors are packed into 26 bits:
+;;; Colors are packed into 25 bits:
 ;;;
-;;;          2         1
-;;;     54321098765432109876543210
-;;;     BBBBBbbbGGGGGgggRRRRRrrrmd
+;;;         2         1
+;;;     4321098765432109876543210
+;;;     Dbbbbbbbbggggggggrrrrrrrr
 ;;;
-;;; d = default or explicit color (0 = default, 1 = explicit)
-;;; m = color mode (0 = 256 color, 1 = truecolor)
-;;; r+R = red   color bits (only 3 bits used for 256 color, all 8 for truecolor)
-;;; g+G = green color bits (only 3 bits used for 256 color, all 8 for truecolor)
-;;; b+B = blue  color bits (only 3 bits used for 256 color, all 8 for truecolor)
+;;; D = default or explicit color (0 = default, 1 = explicit)
+;;; r = red   color bits
+;;; g = green color bits
+;;; b = blue  color bits
+;;;
+;;; TODO: is it worth trying to align color channels on byte boundaries, like
+;;; this?
+;;;
+;;;     .......?bbbbbbbbggggggggrrrrrrrr...biux?bbbbbbbbggggggggrrrrrrrr
+;;;     .......BBBBBBBBBBBBBBBBBBBBBBBBB...biuxFFFFFFFFFFFFFFFFFFFFFFFFF
+;;;            7       6       5       4       3       2       1       0   byte
 
 
 ;;;; Types --------------------------------------------------------------------
 (deftype attribute ()
-  '(unsigned-byte 56))
+  '(unsigned-byte 54))
 
 (deftype color ()
-  '(unsigned-byte 26))
+  '(unsigned-byte 25))
 
-(deftype truecolor ()
+(deftype channel ()
   '(unsigned-byte 8))
-
-(deftype 256color ()
-  '(unsigned-byte 3))
 
 
 ;;;; Readers ------------------------------------------------------------------
-(defun-inline invalidp (attr) (logbitp 55 attr))
+(defun-inline invalidp (attr) (logbitp 53 attr))
 (defun-inline boldp (attr) (logbitp 0 attr))
 (defun-inline italicp (attr) (logbitp 1 attr))
 (defun-inline underlinep (attr) (logbitp 2 attr))
 
 (defun-inline fg (attr) (ldb (byte 25 3) attr))
-(defun-inline bg (attr) (ldb (byte 25 29) attr))
+(defun-inline bg (attr) (ldb (byte 25 28) attr))
 
-(defun-inline colorp (color) (logbitp 0 color))
-(defun-inline truecolorp (color) (logbitp 1 color))
-(defun-inline r (color) (ldb (byte 8 2) color))
-(defun-inline g (color) (ldb (byte 8 10) color))
-(defun-inline b (color) (ldb (byte 8 18) color))
+(defun-inline r (color) (ldb (byte 8 0) color))
+(defun-inline g (color) (ldb (byte 8 8) color))
+(defun-inline b (color) (ldb (byte 8 16) color))
+(defun-inline colorp (color) (logbitp 24 color))
 
 
 ;;;; Constructors -------------------------------------------------------------
-(defun-inline rgb*% (r g b)
-  (_ #b11
-    (dpb r (byte 8 2) _)
-    (dpb g (byte 8 10) _)
-    (dpb b (byte 8 18) _)))
-
-(defun rgb* (r g b)
-  (check-type r truecolor)
-  (check-type g truecolor)
-  (check-type b truecolor)
-  (rgb*% r g b))
-
-(define-compiler-macro rgb* (&whole form r g b &environment env)
-  (if (and (constantp r env)
-           (constantp g env)
-           (constantp b env))
-    (rgb*% r g b)
-    form))
-
-
 (defun-inline rgb% (r g b)
-  (_ #b01
-    (dpb r (byte 8 2) _)
-    (dpb g (byte 8 10) _)
-    (dpb b (byte 8 18) _)))
+  (_ (dpb 1 (byte 1 24) 0)
+    (dpb r (byte 8 0) _)
+    (dpb g (byte 8 8) _)
+    (dpb b (byte 8 16) _)))
 
 (defun rgb (r g b)
-  (check-type r 256color)
-  (check-type g 256color)
-  (check-type b 256color)
+  (check-type r channel)
+  (check-type g channel)
+  (check-type b channel)
   (rgb% r g b))
 
 (define-compiler-macro rgb (&whole form r g b &environment env)
@@ -94,20 +76,19 @@
     (rgb% r g b)
     form))
 
-
 (defun-inline default ()
   0)
 
 (defun invalid-attribute ()
-  (dpb 1 (byte 1 55) 0))
+  (dpb 1 (byte 1 53) 0))
 
 
 (defun-inline attr% (bold italic underline fg bg)
   (logior (dpb (if bold 1 0) (byte 1 0) 0)
           (dpb (if italic 1 0) (byte 1 1) 0)
           (dpb (if underline 1 0) (byte 1 2) 0)
-          (dpb (or fg 0) (byte 26 3) 0)
-          (dpb (or bg 0) (byte 26 29) 0)))
+          (dpb (or fg 0) (byte 25 3) 0)
+          (dpb (or bg 0) (byte 25 28) 0)))
 
 (defun attr (&key bold italic underline fg bg)
   (check-type fg (or null color))
@@ -126,40 +107,29 @@
 
 
 ;;;; Destructuring ------------------------------------------------------------
-(defmacro with-color ((has-color is-truecolor r g b) color &body body)
+(defmacro with-color ((has-color r g b) color &body body)
   "Bind the given symbols to the parts of `color` and evaluate `body`."
   (alexandria:once-only (color)
     `(let ((,has-color (colorp ,color))
-           (,is-truecolor (truecolorp ,color))
            (,r (r ,color))
            (,g (g ,color))
            (,b (b ,color)))
        ,@body)))
 
-(defmacro with-fg ((has-color is-truecolor r g b) attr &body body)
-  `(with-color (,has-color ,is-truecolor ,r ,g ,b) (fg ,attr) ,@body))
+(defmacro with-fg ((has-color r g b) attr &body body)
+  `(with-color (,has-color ,r ,g ,b) (fg ,attr) ,@body))
 
-(defmacro with-bg ((has-color is-truecolor r g b) attr &body body)
-  `(with-color (,has-color ,is-truecolor ,r ,g ,b) (bg ,attr) ,@body))
+(defmacro with-bg ((has-color r g b) attr &body body)
+  `(with-color (,has-color ,r ,g ,b) (bg ,attr) ,@body))
 
 
 ;;;; Printing/Debugging -------------------------------------------------------
 (defun pprint-color (color &optional (stream *standard-output*))
-  (with-color (has-color is-truecolor r g b) color
+  (with-color (has-color r g b) color
     (if has-color
-      (if is-truecolor
-        (format stream "truecolor: (r ~3D) (g ~3D) (b ~3D)~%" r g b)
-        (progn
-          (check-type r 256color)
-          (check-type g 256color)
-          (check-type b 256color)
-          (format stream "256 color: (r ~3D) (g ~3D) (b ~3D)~%" r g b)))
-      (progn
-        (assert (null is-truecolor))
-        (assert (zerop r))
-        (assert (zerop g))
-        (assert (zerop b))
-        (write-line "default" stream)))))
+      (format stream "(r ~3D) (g ~3D) (b ~3D)~%" r g b)
+      (progn (assert (= 0 r g b))
+             (write-line "default" stream)))))
 
 (defun pretty-bits (n)
   (check-type n (unsigned-byte 64))
@@ -178,5 +148,4 @@
   (write-string  "         BG: " stream)
   (pprint-color (bg attr) stream)
   (values))
-
 
