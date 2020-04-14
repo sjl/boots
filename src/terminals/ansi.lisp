@@ -19,7 +19,8 @@
 (defun clear-terminal (stream)
   (e stream "[2J"))
 
-(defun fd (stream)
+(defun fd (stream direction)
+  (declare (ignorable direction))
   ;; todo this isn't right, but it's good enough for the moment
   (cond
     ((eql stream *standard-input*) +STDIN+)
@@ -27,7 +28,8 @@
     ((eql stream *error-output*) +STDERR+)
     (t
      #+sbcl (sb-posix:file-descriptor stream)
-     #-(or sbcl)
+     #+ccl (ccl:stream-device stream direction)
+     #-(or sbcl ccl)
      (error "Don't know how to get a file descriptor for a stream in this implementation."))))
 
 (cffi:defcvar "errno" :int)
@@ -60,18 +62,18 @@
 
 (defun get-terminal-size (terminal)
   (cffi:with-foreign-object (ws '(:struct winsize))
-    (check (ioctl (fd (output terminal)) +TIOCGWINSZ+ :pointer ws))
+    (check (ioctl (fd (output terminal) :output) +TIOCGWINSZ+ :pointer ws))
     (let ((result (cffi:convert-from-foreign ws '(:struct winsize))))
       (values (getf result 'ws-col)
               (getf result 'ws-row)))))
 
 (defun save-termios (terminal)
   (setf (original-termios terminal) (cffi:foreign-alloc '(:struct termios)))
-  (check (tcgetattr (fd (input terminal)) (original-termios terminal))))
+  (check (tcgetattr (fd (input terminal) :input) (original-termios terminal))))
 
 (defun enable-raw (terminal)
   (save-termios terminal)
-  (let ((fd (fd (input terminal))))
+  (let ((fd (fd (input terminal) :input)))
     (cffi:with-foreign-object (new-termios '(:struct termios))
       (check (tcgetattr fd new-termios))
       (logandf (cffi:foreign-slot-value new-termios '(:struct termios) 'local-modes)
@@ -86,7 +88,7 @@
 (defun disable-raw (terminal)
   (let ((termios (original-termios terminal)))
     (when termios
-      (check (tcsetattr (fd (input terminal)) +tcsaflush+ termios))
+      (check (tcsetattr (fd (input terminal) :input) +tcsaflush+ termios))
       (cffi:foreign-free termios))))
 
 
@@ -107,10 +109,11 @@
    (previous-handler :initform nil)
    (original-termios :initform nil)
    (buffer :initform (make-string-output-stream))
-   (characters          :type char-array)
-   (previous-characters :type char-array)
-   (attributes          :type attr-array)
-   (previous-attributes :type attr-array)))
+   ;; https://github.com/Clozure/ccl/issues/291
+   (characters          #-ccl :type #-ccl char-array)
+   (previous-characters #-ccl :type #-ccl char-array)
+   (attributes          #-ccl :type #-ccl attr-array)
+   (previous-attributes #-ccl :type #-ccl attr-array)))
 
 
 (defun resize (terminal)
@@ -130,13 +133,13 @@
 
           (attributes terminal)
           (make-array (list height width)
-            :element-type 'fixnum
-            :initial-element (boots%:default))
+            :element-type 'attribute
+            :initial-element (default))
 
           (previous-attributes terminal)
           (make-array (list height width)
-            :element-type 'boots%:attribute
-            :initial-element (boots%:invalid-attribute))))
+            :element-type 'attribute
+            :initial-element (invalid-attribute))))
   (values))
 
 (defun needs-resize-p (terminal)
