@@ -36,9 +36,9 @@
 (defmethod redraw ((canvas canvas) pad)
   (funcall (drawing-function canvas) pad))
 
-(defun redraw-screen (screen)
+(defun redraw-screen (screen full)
   (check-type screen screen)
-  (boots/terminals:prep (terminal screen))
+  (boots/terminals:prep (terminal screen) full)
   (ensure-screen-resized screen)
   ;; todo cache the pad in the screen
   (redraw (root screen) (make-pad :terminal (terminal screen)))

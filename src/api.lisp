@@ -14,9 +14,9 @@
   (check-type screen boots%:screen)
   (boots/terminals:read-event-no-hang (boots%::terminal screen)))
 
-(defun redraw (&optional (screen *screen*))
+(defun redraw (&key (screen *screen*) (full nil))
   (check-type screen boots%:screen)
-  (boots%:redraw-screen screen))
+  (boots%:redraw-screen screen full))
 
 (defun width (pad)
   (boots%:pad-w pad))

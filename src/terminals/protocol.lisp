@@ -4,7 +4,7 @@
   ((width :type (and fixnum (integer 0)))
    (height :type (and fixnum (integer 0)))))
 
-(defgeneric prep (terminal))
+(defgeneric prep (terminal full))
 (defgeneric blit (terminal))
 
 (defgeneric put (terminal x y character &optional attr))
