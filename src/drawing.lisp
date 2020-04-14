@@ -1,12 +1,5 @@
 (in-package :boots%)
 
-(defparameter *border-top-left-char* #\+)
-(defparameter *border-top-right-char* #\+)
-(defparameter *border-bottom-left-char* #\+)
-(defparameter *border-bottom-right-char* #\+)
-(defparameter *border-vertical-char* #\|)
-(defparameter *border-horizontal-char* #\-)
-
 (defstruct pad
   (terminal (error "terminal is required") :type boots/terminals:terminal)
   (w 0 :type fixnum)
