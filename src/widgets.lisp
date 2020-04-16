@@ -140,6 +140,14 @@
 
 
 ;;;; Constructors -------------------------------------------------------------
+(defun fill-with (char)
+  (lambda (pad)
+    (boots:paint pad char)))
+
+(defun fill-with-random-char ()
+  (fill-with (alexandria:random-elt
+               "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")))
+
 (defun make-screen (terminal &key root)
   (let ((result (make-instance 'screen
                   :terminal terminal
@@ -186,4 +194,4 @@
 (define-make-widget make-stack stack (children . (:children children)))
 (define-make-widget make-shelf shelf (children . (:children children)))
 (define-make-widget make-pile pile (children . (:children children)))
-(define-make-widget make-canvas canvas ((draw 'fill-with-random-char) . (:draw draw)))
+(define-make-widget make-canvas canvas ((draw (fill-with-random-char)) . (:draw draw)))

@@ -58,18 +58,26 @@
          (top (window-y% widget))
          (bottom (+ top th -1))
          (term (pad-terminal pad)))
-    (when bl? (boots/terminals:paint term left  top    1  th *border-vertical-char*))
-    (when br? (boots/terminals:paint term right top    1  th *border-vertical-char*))
-    (when bt? (boots/terminals:paint term left  top    tw 1  *border-horizontal-char*))
-    (when bb? (boots/terminals:paint term left  bottom tw 1  *border-horizontal-char*))
-    (when (and bt? bl?) (boots/terminals:put term left  top    *border-top-left-char*))
-    (when (and bt? br?) (boots/terminals:put term right top    *border-top-right-char*))
-    (when (and bb? bl?) (boots/terminals:put term left  bottom *border-bottom-left-char*))
-    (when (and bb? br?) (boots/terminals:put term right bottom *border-bottom-right-char*))
-    (incf top bl)
-    (incf left bt)
-    (decf tw (+ bl br))
-    (decf th (+ bt bb))
+    (when bl?
+      (boots/terminals:paint term left top 1 th *border-vertical-char*)
+      (when bt? (boots/terminals:put term left top    *border-top-left-char*))
+      (when bb? (boots/terminals:put term left bottom *border-bottom-left-char*))
+      (decf tw)
+      (incf left))
+    (when br?
+      (boots/terminals:paint term right top 1 th *border-vertical-char*)
+      (when bt? (boots/terminals:put term right top    *border-top-right-char*))
+      (when bb? (boots/terminals:put term right bottom *border-bottom-right-char*))
+      (decf tw)
+      (decf right))
+    (when bt?
+      (boots/terminals:paint term left top tw 1 *border-horizontal-char*)
+      (decf th)
+      (incf top))
+    (when bb?
+      (boots/terminals:paint term left bottom tw 1 *border-horizontal-char*)
+      (decf th)
+      (decf bottom))
     (boots/terminals:paint term left top tw th #\space)))
 
 
