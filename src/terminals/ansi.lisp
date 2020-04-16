@@ -273,9 +273,9 @@
                       (aref attrs y% x%) attr)))))
 
 (defmethod paint ((terminal ansi-terminal) x y width height character &optional attr)
-  (check-types fixnum x y width height)
-  (check-type character character)
-  (check-type attr (or null attribute))
+  (require-types fixnum x y width height)
+  (require-type character character)
+  (require-type attr (or null attribute))
   (paint% terminal x y width height character (or attr (boots%:default))))
 
 (defmethod put ((terminal ansi-terminal) x y character &optional attr)

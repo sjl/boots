@@ -1,4 +1,4 @@
-(ql:quickload '(:boots :bobbin))
+(ql:quickload ':boots)
 
 (defpackage :boots/examples/colors
   (:use :cl)

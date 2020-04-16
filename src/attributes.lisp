@@ -57,24 +57,12 @@
 
 
 ;;;; Constructors -------------------------------------------------------------
-(defun-inline rgb% (r g b)
+(defun-inline rgb (r g b)
+  (require-types channel r g b)
   (_ (dpb 1 (byte 1 24) 0)
     (dpb r (byte 8 0) _)
     (dpb g (byte 8 8) _)
     (dpb b (byte 8 16) _)))
-
-(defun rgb (r g b)
-  (check-type r channel)
-  (check-type g channel)
-  (check-type b channel)
-  (rgb% r g b))
-
-(define-compiler-macro rgb (&whole form r g b &environment env)
-  (if (and (constantp r env)
-           (constantp g env)
-           (constantp b env))
-    (rgb% r g b)
-    form))
 
 (defun-inline default ()
   0)
@@ -83,27 +71,13 @@
   (dpb 1 (byte 1 53) 0))
 
 
-(defun-inline attr% (bold italic underline fg bg)
+(defun attr (&key bold italic underline fg bg)
+  (require-types (or null color) fg bg)
   (logior (dpb (if bold 1 0) (byte 1 0) 0)
           (dpb (if italic 1 0) (byte 1 1) 0)
           (dpb (if underline 1 0) (byte 1 2) 0)
           (dpb (or fg 0) (byte 25 3) 0)
           (dpb (or bg 0) (byte 25 28) 0)))
-
-(defun attr (&key bold italic underline fg bg)
-  (check-type fg (or null color))
-  (check-type bg (or null color))
-  (attr% bold italic underline fg bg))
-
-(define-compiler-macro attr
-    (&whole form &key bold italic underline fg bg &environment env)
-  (if (and (constantp bold env)
-           (constantp italic env)
-           (constantp underline env)
-           (constantp fg env)
-           (constantp bg env))
-    (attr% bold italic underline fg bg)
-    form))
 
 
 ;;;; Destructuring ------------------------------------------------------------
@@ -132,11 +106,11 @@
              (write-line "default" stream)))))
 
 (defun pretty-bits (n)
-  (check-type n (unsigned-byte 64))
+  (require-type n (unsigned-byte 64))
   (subseq (format nil "~,'0,' ,8:B" (logior n (expt 2 64))) 2))
 
 (defun pprint-attr (attr &optional (stream *standard-output*))
-  (check-type attr attribute)
+  (require-type attr attribute)
   (format stream "Attribute ~D~%" attr)
   (format stream "       bits: ~A~%" (pretty-bits attr))
   (format stream "       bold: ~A~%" (boldp attr))

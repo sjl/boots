@@ -7,15 +7,15 @@
      ,@body))
 
 (defun read-event (&optional (screen *screen*))
-  (check-type screen boots%:screen)
+  (boots%:require-type screen boots%:screen)
   (boots/terminals:read-event (boots%::terminal screen)))
 
 (defun read-event-no-hang (&optional (screen *screen*))
-  (check-type screen boots%:screen)
+  (boots%:require-type screen boots%:screen)
   (boots/terminals:read-event-no-hang (boots%::terminal screen)))
 
 (defun redraw (&key (screen *screen*) (full nil))
-  (check-type screen boots%:screen)
+  (boots%:require-type screen boots%:screen)
   (boots%:redraw-screen screen full))
 
 (defun width (pad)

@@ -27,10 +27,15 @@
     (redraw widget pad)))
 
 (defmethod redraw ((canvas canvas) pad)
-  (funcall (drawing-function canvas) pad))
+  ;; Don't bother drawing at all if the pad is too small to be seen.
+  ;; This will help users avoid edge cases too, for example: something like
+  ;; (wrap-text foo (width pad)) might break if the pad were 0 characters wide.
+  (unless (or (zerop (pad-w pad))
+              (zerop (pad-h pad)))
+    (funcall (drawing-function canvas) pad)))
 
 (defun redraw-screen (screen full)
-  (check-type screen screen)
+  (require-type screen screen)
   (boots/terminals:prep (terminal screen) full)
   (ensure-screen-resized screen)
   ;; todo cache the pad in the screen
@@ -110,8 +115,8 @@
 
 
 (defun draw (pad x y thing &optional attr)
-  (check-types fixnum x y)
-  (check-type pad pad)
+  (require-types fixnum x y)
+  (require-type pad pad)
   ;; This could be a generic function, but it's called a *lot* (possibly
   ;; multiple times for every cell in every widget) so let's make this
   ;; concession for performance.
@@ -125,8 +130,8 @@
 
 (defun paint (pad character &key
               (x 0) (y 0) (width (pad-w pad)) (height (pad-h pad)) attr)
-  (check-types fixnum x y)
-  (check-type pad pad)
+  (require-types fixnum x y)
+  (require-type pad pad)
   (when (and (in-range-p 0 x (pad-w pad))
              (in-range-p 0 y (pad-h pad)))
     (boots/terminals:paint (pad-terminal pad)

@@ -3,7 +3,7 @@
   (:use :cl)
   (:export
     :*screen*
-    :defun-inline :_ :defclass* :in-range-p :check-types
+    :defun-inline :_ :defclass* :in-range-p :require-type :require-types
 
     :attribute
     :attr :rgb

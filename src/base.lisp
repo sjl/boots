@@ -80,5 +80,12 @@
   (and (<= low value)
        (< value high)))
 
-(defmacro check-types (type &rest places)
-  `(progn ,@(loop :for place :in places :collect `(check-type ,place ,type))))
+(defmacro require-type (form type)
+  (alexandria:with-gensyms (value)
+    `(let ((,value ,form))
+       (unless (typep ,value ',type)
+         (error "The value of ~S is ~S, which is not of type ~S."
+                ',form ,value ',type)))))
+
+(defmacro require-types (type &rest forms)
+  `(progn ,@(loop :for form :in forms :collect `(require-type ,form ,type))))
