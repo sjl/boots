@@ -24,6 +24,44 @@
           (boots:make-canvas)))
       (boots:make-canvas :border-left t))))
 
+;;; The resulting layout will look something like this (depending on the
+;;; terminal size):
+;;;
+;;; ┌────────┐
+;;; │CCCCCCCC│──┐
+;;; │CCCCCCCC│UU│──┐
+;;; │CCCCCCCC│UU│SS│
+;;; │CCCCCCCC│UU│SS│
+;;; └────────┘UU│SS│
+;;;    └────────┘SS│
+;;;       └────────┘
+;;;
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ┌───────┐JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│fffffff│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│───────│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│───────│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLL│RRRRRRR│LLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLL└───────┘LLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+
 (defun run ()
   (boots/terminals/ansi:with-ansi-terminal (terminal)
     (boots:with-screen (boots:*screen* terminal :root *example*)
