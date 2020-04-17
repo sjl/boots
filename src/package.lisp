@@ -5,7 +5,7 @@
     :*screen*
     :defun-inline :_ :defclass* :in-range-p :require-type :require-types
 
-    :attribute
+    :attribute :color
     :attr :rgb
     :default :invalid-attribute
     :boldp :italicp :underlinep
@@ -65,6 +65,8 @@
   (:import-from :boots%
     :*screen*
 
+    :attribute
+    :color
     :attr
     :rgb
     :default
@@ -91,6 +93,8 @@
   (:export
     :*screen*
 
+    :attribute
+    :color
     :attr
     :rgb
     :default
