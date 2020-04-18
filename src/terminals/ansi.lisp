@@ -1,8 +1,5 @@
 (in-package :boots/terminals/ansi)
 
-(defparameter *debug* nil)
-
-
 ;;;; Plumbing -----------------------------------------------------------------
 (define-modify-macro logandf (&rest args) logand)
 
@@ -93,15 +90,6 @@
 
 
 ;;;; Terminal -----------------------------------------------------------------
-(deftype size ()
-  `(integer 0 ,(1- array-dimension-limit)))
-
-(deftype char-array ()
-  '(simple-array character (* *)))
-
-(deftype attr-array ()
-  '(simple-array attribute (* *)))
-
 (defclass* ansi-terminal (terminal)
   ((input :type stream)
    (output :type stream)

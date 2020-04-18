@@ -1,29 +1,29 @@
 (in-package :boots%)
 
+;;;; Types --------------------------------------------------------------------
+(defconstant +screen-dimension-limit+ (1- array-dimension-limit))
+
+(deftype size ()
+  `(integer 0 ,+screen-dimension-limit+))
+
+(deftype coord ()
+  `(integer 0 (,+screen-dimension-limit+)))
+
+(deftype char-array ()
+  '(simple-array character (* *)))
+
+(deftype attr-array ()
+  '(simple-array attribute (* *)))
+
+
 ;;;; State --------------------------------------------------------------------
 (defparameter *screen* nil)
-
-;; (defparameter *border-top-left-char* #\+)
-;; (defparameter *border-top-right-char* #\+)
-;; (defparameter *border-bottom-left-char* #\+)
-;; (defparameter *border-bottom-right-char* #\+)
-;; (defparameter *border-vertical-char* #\|)
-;; (defparameter *border-horizontal-char* #\-)
-
-(defparameter *border-top-left-char*     (char "┌" 0))
-(defparameter *border-top-right-char*    (char "┐" 0))
-(defparameter *border-bottom-left-char*  (char "└" 0))
-(defparameter *border-bottom-right-char* (char "┘" 0))
-(defparameter *border-vertical-char*     (char "│" 0))
-(defparameter *border-horizontal-char*   (char "─" 0))
-
-;; (defparameter *border-top-left-char*     (char "┏" 0))
-;; (defparameter *border-top-right-char*    (char "┓" 0))
-;; (defparameter *border-bottom-left-char*  (char "┗" 0))
-;; (defparameter *border-bottom-right-char* (char "┛" 0))
-;; (defparameter *border-vertical-char*     (char "┃" 0))
-;; (defparameter *border-horizontal-char*   (char "━" 0))
-
+(defparameter *border-top-left-char*     #\+)
+(defparameter *border-top-right-char*    #\+)
+(defparameter *border-bottom-left-char*  #\+)
+(defparameter *border-bottom-right-char* #\+)
+(defparameter *border-vertical-char*     #\|)
+(defparameter *border-horizontal-char*   #\-)
 
 ;;;; Utilities ----------------------------------------------------------------
 (defmacro defun-inline (name args &body body)

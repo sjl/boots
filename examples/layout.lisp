@@ -63,7 +63,8 @@
 ;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
 
 (defun run ()
-  (boots/terminals/ansi:with-ansi-terminal (terminal)
-    (boots:with-screen (boots:*screen* terminal :root *example*)
-      (boots:redraw)
-      (boots:read-event))))
+  (boots:with-light-borders
+    (boots/terminals/ansi:with-ansi-terminal (terminal)
+      (boots:with-screen (boots:*screen* terminal :root *example*)
+        (boots:redraw)
+        (boots:read-event)))))

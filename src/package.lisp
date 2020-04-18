@@ -3,6 +3,15 @@
   (:use :cl)
   (:export
     :*screen*
+    :*border-top-left-char*
+    :*border-top-right-char*
+    :*border-bottom-left-char*
+    :*border-bottom-right-char*
+    :*border-vertical-char*
+    :*border-horizontal-char*
+
+    :size :coord :char-array :attr-array
+
     :defun-inline :_ :defclass* :in-range-p :require-type :require-types
 
     :attribute :color
@@ -13,13 +22,6 @@
     :fg :bg :r :g :b
 
     :event
-
-    :*border-top-left-char*
-    :*border-top-right-char*
-    :*border-bottom-left-char*
-    :*border-bottom-right-char*
-    :*border-vertical-char*
-    :*border-horizontal-char*
 
     :pad
     :pad-w
@@ -107,6 +109,9 @@
     :*border-bottom-right-char*
     :*border-vertical-char*
     :*border-horizontal-char*
+    :with-simple-borders
+    :with-light-borders
+    :with-heavy-borders
 
     :draw
     :paint
