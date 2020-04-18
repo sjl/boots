@@ -4,9 +4,11 @@
 (defconstant +screen-dimension-limit+ (1- array-dimension-limit))
 
 (deftype size ()
+  "A size is the magnitude of a width/height on the screen."
   `(integer 0 ,+screen-dimension-limit+))
 
 (deftype coord ()
+  "A terminal is a (valid) x or y position on a screen."
   `(integer 0 (,+screen-dimension-limit+)))
 
 (deftype char-array ()

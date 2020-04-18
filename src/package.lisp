@@ -67,71 +67,43 @@
   (:import-from :boots%
     :*screen*
 
-    :attribute
-    :color
-    :attr
-    :rgb
-    :default
+    :attribute :color
+    :attr :rgb :default
 
     :event
 
-    :*border-top-left-char*
-    :*border-top-right-char*
-    :*border-bottom-left-char*
-    :*border-bottom-right-char*
-    :*border-vertical-char*
-    :*border-horizontal-char*
+    :*border-vertical-char* :*border-horizontal-char*
+    :*border-top-left-char* :*border-top-right-char*
+    :*border-bottom-left-char* :*border-bottom-right-char*
 
-    :draw
-    :paint
+    :draw :paint
 
-    :make-stack
-    :make-shelf
-    :make-pile
-    :make-canvas
+    :make-stack :make-shelf :make-pile :make-canvas
+    :stack :shelf :pile :canvas
 
-    :root
-    :children)
+    :root :children)
   (:export
     :*screen*
 
-    :attribute
-    :color
-    :attr
-    :rgb
-    :default
+    :attribute :color
+    :attr :rgb :default
 
     :event
 
-    :*border-top-left-char*
-    :*border-top-right-char*
-    :*border-bottom-left-char*
-    :*border-bottom-right-char*
-    :*border-vertical-char*
-    :*border-horizontal-char*
-    :with-simple-borders
-    :with-light-borders
-    :with-heavy-borders
+    :*border-vertical-char* :*border-horizontal-char*
+    :*border-top-left-char* :*border-top-right-char*
+    :*border-bottom-left-char* :*border-bottom-right-char*
+    :with-simple-borders :with-light-borders :with-heavy-borders
 
-    :draw
-    :paint
-    :width
-    :height
+    :draw :paint
+    :width :height
 
-    :make-stack
-    :make-shelf
-    :make-pile
-    :make-canvas
+    :make-stack :make-shelf :make-pile :make-canvas
+    :stack :shelf :pile :canvas
 
     :with-screen
 
-    :stack
-    :shelf
-    :pile
-    :canvas
-
-    :root
-    :children
+    :root :children
 
     :redraw
     :read-event

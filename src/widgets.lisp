@@ -34,16 +34,13 @@
   '(or (eql t) (float 0.0 1.0) (integer 0 *)))
 
 (deftype computed-length ()
-  '(or (eql t) (integer 0 *)))
+  '(or (eql t) size))
 
 (deftype border-designator ()
   'boolean)
 
 (deftype computed-border ()
   '(integer 0 1))
-
-(deftype location ()
-  '(integer 0 *))
 
 (deftype function-designator ()
   '(or function symbol))
@@ -81,10 +78,10 @@
    (border-right%  :type computed-border)
    (border-bottom% :type computed-border)
    (border-left%   :type computed-border)
-   (window-x% :type location)
-   (window-y% :type location)
-   (content-x% :type location)
-   (content-y% :type location)))
+   (window-x% :type coord)
+   (window-y% :type coord)
+   (content-x% :type coord)
+   (content-y% :type coord)))
 
 (defmethod print-object ((object widget) stream)
   (flet ((slot (slot)
@@ -93,12 +90,9 @@
              '?)))
     (print-unreadable-object (object stream :type t :identity t)
       (format stream "~Ax~A @~A,~A/~A,~A ~S ~S ~S"
-              (slot 'width%)
-              (slot 'height%)
-              (slot 'window-x%)
-              (slot 'window-y%)
-              (slot 'content-x%)
-              (slot 'content-y%)
+              (slot 'width%) (slot 'height%)
+              (slot 'window-x%) (slot 'window-y%)
+              (slot 'content-x%) (slot 'content-y%)
               (list "m"
                     (slot 'margin-top%)
                     (slot 'margin-right%)
@@ -123,14 +117,13 @@
 (defclass* pile (container) ())
 
 (defclass* canvas (widget)
-  ((drawing-function :type function-designator :initarg :draw)))
+  ((drawing-function :type function-designator)))
 
 (defclass* screen ()
   ((root :type widget)
    (terminal :type boots/terminals:terminal)
-   ;; todo: make these more specific
-   (width  :type (and fixnum (integer 0)))
-   (height :type (and fixnum (integer 0)))))
+   (width :type size)
+   (height :type size)))
 
 (defmethod width% ((screen screen))
   (width screen))
@@ -140,42 +133,35 @@
 
 
 ;;;; Constructors -------------------------------------------------------------
-(defun fill-with (char)
-  (lambda (pad)
-    (boots:paint pad char)))
-
-(defun fill-with-random-char ()
-  (fill-with (alexandria:random-elt
-               "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")))
-
 (defun make-screen (terminal &key root)
   (let ((result (make-instance 'screen
                   :terminal terminal
-                  :width 1 ; dummy fixnums, will get clobbered later
-                  :height 1)))
+                  :width 0 ; dummy fixnums, will get clobbered later
+                  :height 0)))
     (when root
       (setf (root result) root))
     result))
 
-(defmacro define-make-widget (name class &rest extra)
-  `(defun ,name (&key
-                 (width t) (height t)
-                 (margin 0) (padding 0) (border nil)
-                 (margin-top margin)
-                 (margin-right margin)
-                 (margin-bottom margin)
-                 (margin-left margin)
-                 (padding-top padding)
-                 (padding-right padding)
-                 (padding-bottom padding)
-                 (padding-left padding)
-                 (border-top border)
-                 (border-right border)
-                 (border-bottom border)
-                 (border-left border)
-                 ,@(mapcar #'car extra))
-     (make-instance ',class
-       :width width
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *widget-args*
+    '((width t) (height t)
+      (margin 0) (padding 0) (border nil)
+      (margin-top margin)
+      (margin-right margin)
+      (margin-bottom margin)
+      (margin-left margin)
+      (padding-top padding)
+      (padding-right padding)
+      (padding-bottom padding)
+      (padding-left padding)
+      (border-top border)
+      (border-right border)
+      (border-bottom border)
+      (border-left border)))
+
+  (defparameter *widget-make-instance-args*
+    '(:width width
        :height height
        :margin-top margin-top
        :margin-right margin-right
@@ -188,10 +174,33 @@
        :border-top border-top
        :border-right border-right
        :border-bottom border-bottom
-       :border-left border-left
-       ,@(apply #'append (mapcar #'cdr extra)))))
+       :border-left border-left)))
 
-(define-make-widget make-stack stack (children . (:children children)))
-(define-make-widget make-shelf shelf (children . (:children children)))
-(define-make-widget make-pile pile (children . (:children children)))
-(define-make-widget make-canvas canvas ((draw (fill-with-random-char)) . (:draw draw)))
+
+(defun make-stack #.`(&key ,@*widget-args* children)
+  #.`(make-instance 'stack ,@*widget-make-instance-args* :children children))
+
+(defun make-shelf #.`(&key ,@*widget-args* children)
+  #.`(make-instance 'shelf ,@*widget-make-instance-args* :children children))
+
+(defun make-pile #.`(&key ,@*widget-args* children)
+  #.`(make-instance 'pile ,@*widget-make-instance-args* :children children))
+
+(defun make-canvas #.`(&key ,@*widget-args* (draw (constantly nil)))
+  #.`(make-instance 'canvas ,@*widget-make-instance-args* :drawing-function draw))
+
+(defmacro stack (#.`(&rest args &key ,@*widget-args*) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+  `(make-stack ,@args :children (list ,@children)))
+
+(defmacro shelf (#.`(&rest args &key ,@*widget-args*) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+  `(make-shelf ,@args :children (list ,@children)))
+
+(defmacro pile (#.`(&rest args &key ,@*widget-args*) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+  `(make-pile ,@args :children (list ,@children)))
+
+(defmacro canvas (#.`(&rest args &key ,@*widget-args*) (pad-argument) &body body)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+  `(make-canvas ,@args :draw (lambda (,pad-argument) ,@body)))
