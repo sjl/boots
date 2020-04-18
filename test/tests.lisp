@@ -697,7 +697,6 @@ oooooooooo~%~:
     "))
 
 
-
 (define-layout-tests pile-margin
   (8 4 (boots:pile ()
          (c #\x :margin t :width 2 :height 2)
@@ -844,3 +843,90 @@ oooooooooo~%~:
    "++++++~@
     ||||||~@
     ++++++"))
+
+(define-layout-tests fill-chars
+  (10 5 (boots:pile ()
+          (boots:shelf (:height 1 :fill-char #\_ :padding 1)
+            (boots:make-canvas :width 3 :fill-char #\a)
+            (boots:make-canvas :fill-char nil)
+            (boots:make-canvas :width 3 :fill-char #\b))
+          *.*)
+   "__________~@
+    _aaa__bbb_~@
+    __________~@
+    ..........~@
+    ..........")
+  (10 5 (boots:pile ()
+          (boots:shelf (:height 1 :fill-char #\_ :padding 1)
+            (boots:make-canvas :width 3 :fill-char #\a :margin-right t)
+            (boots:make-canvas :width 3 :fill-char #\b))
+          *.*)
+   "__________~@
+    _aaa__bbb_~@
+    __________~@
+    ..........~@
+    ..........")
+  (10 5 (boots:pile ()
+          (boots:shelf (:height 1 :fill-char #\_ :padding 1)
+            (boots:make-canvas :width 3 :fill-char #\a)
+            (boots:make-canvas :width 3 :fill-char #\b :margin-left t))
+          *.*)
+   "__________~@
+    _aaa__bbb_~@
+    __________~@
+    ..........~@
+    ..........")
+  (10 5 (boots:pile ()
+          (boots:shelf (:height 1 :fill-char #\_ :padding 1)
+            (boots:make-canvas :width 3 :fill-char #\a)
+            (boots:make-canvas :width 3 :margin-left t))
+          *.*)
+   "__________~@
+    _aaa__   _~@
+    __________~@
+    ..........~@
+    ..........")
+  (10 5 (boots:pile ()
+          (boots:shelf (:height 2 :fill-char #\_ :padding 1)
+            (boots:make-canvas :width 3 :fill-char #\a)
+            (boots:make-canvas :width 3 :margin-left t))
+          *.*)
+   "__________~@
+    _aaa__   _~@
+    _aaa__   _~@
+    __________~@
+    ..........")
+  (10 5 (boots:shelf (:fill-char #\_ :padding 1)
+          (boots:make-canvas :fill-char #\a)
+          (boots:make-canvas :fill-char #\b))
+   "__________~@
+    _aaaabbbb_~@
+    _aaaabbbb_~@
+    _aaaabbbb_~@
+    __________")
+  (10 5 (boots:shelf (:fill-char #\_ :padding 1)
+          (boots:make-canvas :fill-char #\a)
+          (boots:make-canvas))
+   "__________~@
+    _aaaa    _~@
+    _aaaa    _~@
+    _aaaa    _~@
+    __________")
+  (10 5 (boots:stack (:fill-char #\_ :padding 1)
+          (boots:make-canvas :fill-char #\a)
+          (boots:make-canvas :fill-char #\b))
+   "__________~@
+    _aaaaaaaa_~@
+    _aaaaaaaa_~@
+    _bbbbbbbb_~@
+    __________")
+  (10 5 (boots:stack (:fill-char #\_ :padding 1)
+          (boots:make-canvas :fill-char #\space)
+          (boots:make-canvas :fill-char #\b))
+   "__________~@
+    _        _~@
+    _        _~@
+    _bbbbbbbb_~@
+    __________"))
+
+

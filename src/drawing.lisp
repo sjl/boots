@@ -53,6 +53,8 @@
          (pl (padding-left% widget))
          (tw (+ bl pl (width% widget)  pr br))
          (th (+ bt pt (height% widget) pb bb))
+         (fc (fill-char widget))
+         (fa (fill-attr widget))
          (left (window-x% widget))
          (right (+ left tw -1))
          (top (window-y% widget))
@@ -78,9 +80,8 @@
       (boots/terminals:paint term left bottom tw 1 *border-horizontal-char*)
       (decf th)
       (decf bottom))
-    ;; TODO remove this check when we add backgrounds/transparency
-    (when (typep widget 'canvas)
-      (boots/terminals:paint term left top tw th #\space))))
+    (when fc
+      (boots/terminals:paint term left top tw th fc fa))))
 
 
 (defun draw-character% (pad x y character attr)

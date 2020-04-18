@@ -51,6 +51,8 @@
   ;; Desired
   ((width  :type length-designator)
    (height :type length-designator)
+   (fill-char :type (or character null))
+   (fill-attr :type attribute)
    (margin-top    :type length-designator)
    (margin-right  :type length-designator)
    (margin-bottom :type length-designator)
@@ -89,25 +91,26 @@
              (slot-value object slot)
              '?)))
     (print-unreadable-object (object stream :type t :identity t)
-      (format stream "~Ax~A @~A,~A/~A,~A ~S ~S ~S"
+      (format stream "~Ax~A @~A,~A/~A,~A ~S ~S ~S ~S"
               (slot 'width%) (slot 'height%)
               (slot 'window-x%) (slot 'window-y%)
               (slot 'content-x%) (slot 'content-y%)
-              (list "m"
+              (list :m
                     (slot 'margin-top%)
                     (slot 'margin-right%)
                     (slot 'margin-bottom%)
                     (slot 'margin-left%))
-              (list "b"
+              (list :b
                     (slot 'border-top%)
                     (slot 'border-right%)
                     (slot 'border-bottom%)
                     (slot 'border-left%))
-              (list "p"
+              (list :p
                     (slot 'padding-top%)
                     (slot 'padding-right%)
                     (slot 'padding-bottom%)
-                    (slot 'padding-left%))))))
+                    (slot 'padding-left%))
+              (list :f (slot 'fill-char))))))
 
 (defclass* container (widget)
   ((children :type list :initform nil)))
@@ -145,7 +148,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *widget-args*
-    '((width t) (height t)
+    '((width t) (height t) (fill-attr (default))
       (margin 0) (padding 0) (border nil)
       (margin-vertical margin)
       (margin-horizontal margin)
@@ -168,45 +171,46 @@
 
   (defparameter *widget-make-instance-args*
     '(:width width
-       :height height
-       :margin-top margin-top
-       :margin-right margin-right
-       :margin-bottom margin-bottom
-       :margin-left margin-left
-       :padding-top padding-top
-       :padding-right padding-right
-       :padding-bottom padding-bottom
-       :padding-left padding-left
-       :border-top border-top
-       :border-right border-right
-       :border-bottom border-bottom
-       :border-left border-left)))
+      :height height
+      :fill-attr fill-attr
+      :margin-top margin-top
+      :margin-right margin-right
+      :margin-bottom margin-bottom
+      :margin-left margin-left
+      :padding-top padding-top
+      :padding-right padding-right
+      :padding-bottom padding-bottom
+      :padding-left padding-left
+      :border-top border-top
+      :border-right border-right
+      :border-bottom border-bottom
+      :border-left border-left)))
 
 
-(defun make-stack #.`(&key ,@*widget-args* children)
-  #.`(make-instance 'stack ,@*widget-make-instance-args* :children children))
+(defun make-stack #.`(&key ,@*widget-args* (fill-char nil) children)
+  #.`(make-instance 'stack ,@*widget-make-instance-args* :children children :fill-char fill-char))
 
-(defun make-shelf #.`(&key ,@*widget-args* children)
-  #.`(make-instance 'shelf ,@*widget-make-instance-args* :children children))
+(defun make-shelf #.`(&key ,@*widget-args* (fill-char nil) children)
+  #.`(make-instance 'shelf ,@*widget-make-instance-args* :children children :fill-char fill-char))
 
-(defun make-pile #.`(&key ,@*widget-args* children)
-  #.`(make-instance 'pile ,@*widget-make-instance-args* :children children))
+(defun make-pile #.`(&key ,@*widget-args* (fill-char nil) children)
+  #.`(make-instance 'pile ,@*widget-make-instance-args* :children children :fill-char fill-char))
 
-(defun make-canvas #.`(&key ,@*widget-args* (draw (constantly nil)))
-  #.`(make-instance 'canvas ,@*widget-make-instance-args* :drawing-function draw))
+(defun make-canvas #.`(&key ,@*widget-args* (fill-char #\space) (draw (constantly nil)))
+  #.`(make-instance 'canvas ,@*widget-make-instance-args* :drawing-function draw :fill-char fill-char))
 
-(defmacro stack (#.`(&rest args &key ,@*widget-args*) &rest children)
-  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+(defmacro stack (#.`(&rest args &key ,@*widget-args* (fill-char nil)) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*) fill-char))
   `(make-stack ,@args :children (list ,@children)))
 
-(defmacro shelf (#.`(&rest args &key ,@*widget-args*) &rest children)
-  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+(defmacro shelf (#.`(&rest args &key ,@*widget-args* (fill-char nil)) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*) fill-char))
   `(make-shelf ,@args :children (list ,@children)))
 
-(defmacro pile (#.`(&rest args &key ,@*widget-args*) &rest children)
-  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+(defmacro pile (#.`(&rest args &key ,@*widget-args* (fill-char nil)) &rest children)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*) fill-char))
   `(make-pile ,@args :children (list ,@children)))
 
-(defmacro canvas (#.`(&rest args &key ,@*widget-args*) (pad-argument) &body body)
-  (declare #.`(ignorable ,@(mapcar #'car *widget-args*)))
+(defmacro canvas (#.`(&rest args &key ,@*widget-args* (fill-char #\space)) (pad-argument) &body body)
+  (declare #.`(ignorable ,@(mapcar #'car *widget-args*) fill-char))
   `(make-canvas ,@args :draw (lambda (,pad-argument) ,@body)))
