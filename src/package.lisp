@@ -12,7 +12,8 @@
 
     :size :coord :char-array :attr-array
 
-    :defun-inline :_ :defclass* :in-range-p :require-type :require-types
+    :defun-inline :_ :defclass* :in-range-p :make2d :fill2d
+    :require-type :require-types
 
     :attribute :color
     :attr :rgb
@@ -59,6 +60,11 @@
   (:use :cl :boots% :boots/terminals)
   (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this 
   (:export :with-ansi-terminal))
+
+(defpackage :boots/terminals/static
+  (:use :cl :boots% :boots/terminals)
+  (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this
+  (:export :with-static-terminal :stringify))
 
 
 ;;;; User-facing API ----------------------------------------------------------

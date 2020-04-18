@@ -83,6 +83,13 @@
        (< value high)))
 
 (defmacro require-type (form type)
+  "If `form` is not of type `type`, signal an error.
+
+  Like `check-type`, but doesn't set up a restart.  Useful if you want the make
+  sure someone passes in the correct type, but don't want to pay the full
+  performance cost of `check-type`.
+
+  "
   (alexandria:with-gensyms (value)
     `(let ((,value ,form))
        (unless (typep ,value ',type)
@@ -90,4 +97,21 @@
                 ',form ,value ',type)))))
 
 (defmacro require-types (type &rest forms)
+  "Check that every form in `forms` is of type `type` using `require-type`."
   `(progn ,@(loop :for form :in forms :collect `(require-type ,form ,type))))
+
+(defun make2d (height width element-type initial-element)
+  "Make a 2 dimensional array with the given attributes."
+  (make-array (list height width)
+    :element-type element-type
+    :initial-element initial-element))
+
+(defun fill2d (array value)
+  "Fill the 2 dimensional array `array` with `value`."
+  #+sbcl
+  (fill (sb-ext:array-storage-vector array) value)
+  #-(or sbcl)
+  (destructuring-bind (h w) (array-dimensions array)
+    (dotimes (y h)
+      (dotimes (x w)
+        (setf (aref array y x) value)))))

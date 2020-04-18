@@ -94,7 +94,6 @@
   ((input :type stream)
    (output :type stream)
    (truecolor :type boolean)
-   (previous-handler :initform nil)
    (original-termios :initform nil)
    (buffer :initform (make-string-output-stream))
    ;; https://github.com/Clozure/ccl/issues/291
@@ -106,28 +105,13 @@
 
 (defun resize (terminal)
   (multiple-value-bind (width height) (get-terminal-size terminal)
-    (setf (width terminal) width
-          (height terminal) height
-
-          (characters terminal)
-          (make-array (list height width)
-            :element-type 'character
-            :initial-element #\space)
-
-          (previous-characters terminal)
-          (make-array (list height width)
-            :element-type 'character
-            :initial-element #\nul)
-
-          (attributes terminal)
-          (make-array (list height width)
-            :element-type 'attribute
-            :initial-element (default))
-
-          (previous-attributes terminal)
-          (make-array (list height width)
-            :element-type 'attribute
-            :initial-element (invalid-attribute))))
+    (setf
+      (width terminal)  width
+      (height terminal) height
+      (characters terminal)          (make2d height width 'character #\space)
+      (previous-characters terminal) (make2d height width 'character #\nul)
+      (attributes terminal)          (make2d height width 'attribute (default))
+      (previous-attributes terminal) (make2d height width 'attribute (invalid-attribute))))
   (values))
 
 (defun needs-resize-p (terminal)
@@ -141,10 +125,10 @@
                                       (output-stream '*standard-output*)
                                       (truecolor t))
                               &body body)
-  `(let* ((,symbol (make-instance 'ansi-terminal
-                     :input ,input-stream
-                     :output ,output-stream
-                     :truecolor ,truecolor)))
+  `(let ((,symbol (make-instance 'ansi-terminal
+                    :input ,input-stream
+                    :output ,output-stream
+                    :truecolor ,truecolor)))
      (start ,symbol)
      (unwind-protect (progn ,@body)
        (stop ,symbol))))
@@ -253,6 +237,7 @@
            (type attribute attr))
   (let ((chars (characters terminal))
         (attrs (attributes terminal)))
+    #-ccl
     (declare (type char-array chars)
              (type attr-array attrs))
     (loop :for x% fixnum :from x :below (the fixnum (+ x width)) :do
@@ -268,13 +253,13 @@
 
 (defmethod put ((terminal ansi-terminal) x y character &optional attr)
   (declare (optimize speed))
-  (let ((chars (characters terminal)))
-    (declare (type (simple-array character (* *)) chars))
-    (setf (aref chars y x) character))
-  (when attr
-    (let ((attrs (attributes terminal)))
-      (declare (type (simple-array attribute (* *)) attrs))
-      (setf (aref attrs y x) attr)))
+  (let ((chars (characters terminal))
+        (attrs (attributes terminal)))
+    #-ccl
+    (declare (type char-array chars)
+             (type attr-array attrs))
+    (setf (aref chars y x) character
+          (aref attrs y x) (or attr (default))))
   nil)
 
 (defmethod prep ((terminal ansi-terminal) full)

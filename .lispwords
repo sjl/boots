@@ -3,3 +3,5 @@
 
 (1 stack shelf pile)
 (2 canvas)
+(1 with-static-terminal with-ansi-terminal with-screen)
+(1 define-layout-test)

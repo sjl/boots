@@ -1,8 +1,8 @@
 (in-package :boots/terminals)
 
 (defclass* terminal ()
-  ((width :type (and fixnum (integer 0)))
-   (height :type (and fixnum (integer 0)))))
+  ((width :type size)
+   (height :type size)))
 
 (defgeneric prep (terminal full))
 (defgeneric blit (terminal))

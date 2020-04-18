@@ -2,10 +2,10 @@
 
 (defstruct pad
   (terminal (error "terminal is required") :type boots/terminals:terminal)
-  (w 0 :type fixnum)
-  (h 0 :type fixnum)
-  (x 0 :type fixnum)
-  (y 0 :type fixnum))
+  (w 0 :type size)
+  (h 0 :type size)
+  (x 0 :type coord)
+  (y 0 :type coord))
 
 (defgeneric redraw (widget pad))
 
@@ -78,7 +78,9 @@
       (boots/terminals:paint term left bottom tw 1 *border-horizontal-char*)
       (decf th)
       (decf bottom))
-    (boots/terminals:paint term left top tw th #\space)))
+    ;; TODO remove this check when we add backgrounds/transparency
+    (when (typep widget 'canvas)
+      (boots/terminals:paint term left top tw th #\space))))
 
 
 (defun draw-character% (pad x y character attr)
@@ -130,8 +132,10 @@
   ;; concession for performance.
   (etypecase thing
     (character
-      (assert (char/= #\newline thing) () "Cannot draw a newline into a cell.")
-      (draw-character% pad x y thing attr))
+      (case thing
+        (#\newline (error "Cannot draw a newline into a cell."))
+        (#\nul nil) ; todo transparency
+        (t (draw-character% pad x y thing attr))))
     (string (draw-string% pad x y thing attr))
     (list (draw-list% pad x y thing attr)))
   nil)
@@ -140,6 +144,7 @@
               (x 0) (y 0) (width (pad-w pad)) (height (pad-h pad)) attr)
   (require-types fixnum x y)
   (require-type pad pad)
+  (require-type character character)
   (when (and (in-range-p 0 x (pad-w pad))
              (in-range-p 0 y (pad-h pad)))
     (boots/terminals:paint (pad-terminal pad)

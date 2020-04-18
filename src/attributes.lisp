@@ -67,11 +67,11 @@
 (defun-inline default ()
   0)
 
-(defun invalid-attribute ()
+(defun-inline invalid-attribute ()
   (dpb 1 (byte 1 53) 0))
 
 
-(defun attr (&key bold italic underline fg bg)
+(defun-inline attr (&key bold italic underline fg bg)
   (require-types (or null color) fg bg)
   (logior (dpb (if bold 1 0) (byte 1 0) 0)
           (dpb (if italic 1 0) (byte 1 1) 0)
