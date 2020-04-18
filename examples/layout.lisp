@@ -6,61 +6,67 @@
 
 (in-package :boots/examples/layout)
 
+(defun draw (char)
+  (lambda (pad)
+    (boots:paint pad char)))
+
 (defparameter *example*
   (boots:stack ()
     (boots:pile (:height 10)
-      (boots:make-canvas :border t :width 8 :height 4 :margin-top 1 :margin-left 1)
-      (boots:make-canvas :border t :width 8 :height 4 :margin-top 2 :margin-left 4)
-      (boots:make-canvas :border t :width 8 :height 4 :margin-top 3 :margin-left 7))
-    (boots:shelf ()
-      (boots:make-canvas :border-right t)
+      (boots:make-canvas :border t :width 8 :height 4 :margin-top 1 :margin-left 1 :draw (draw #\1))
+      (boots:make-canvas :border t :width 8 :height 4 :margin-top 2 :margin-left 4 :draw (draw #\2))
+      (boots:make-canvas :border t :width 8 :height 4 :margin-top 3 :margin-left 7 :draw (draw #\3)))
+    (boots:shelf (:padding-vertical 1 :fill-char #\~)
+      (boots:make-canvas :border-right t :padding 2 :fill-char #\< :draw (draw #\4))
       (boots:pile ()
         (boots:stack (:border t :margin t :margin-top 0.15)
-          (boots:make-canvas :height 1 :border-bottom t)
-          (boots:make-canvas)
-          (boots:make-canvas :height 1 :border-top t))
+          (boots:make-canvas :height 1 :border-bottom t :draw (draw #\5))
+          (boots:make-canvas :draw (draw #\6))
+          (boots:make-canvas :height 1 :border-top t :draw (draw #\7)))
         (boots:stack ()
-          (boots:make-canvas)
-          (boots:make-canvas)))
-      (boots:make-canvas :border-left t))))
+          (boots:make-canvas :draw (draw #\8))
+          (boots:make-canvas :draw (draw #\9))))
+      (boots:make-canvas :border-left t :padding 2 :fill-char #\> :draw (draw #\0)))))
 
 ;;; The resulting layout will look something like this (depending on the
 ;;; terminal size):
 ;;;
 ;;; ┌────────┐
-;;; │CCCCCCCC│──┐
-;;; │CCCCCCCC│UU│──┐
-;;; │CCCCCCCC│UU│SS│
-;;; │CCCCCCCC│UU│SS│
-;;; └────────┘UU│SS│
-;;;    └────────┘SS│
+;;; │11111111│──┐
+;;; │11111111│22│──┐
+;;; │11111111│22│33│
+;;; │11111111│22│33│
+;;; └────────┘22│33│
+;;;    └────────┘33│
 ;;;       └────────┘
 ;;;
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJJJJJJJJJJJJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ┌───────┐JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│fffffff│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│───────│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│HHHHHHH│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│JJJJJJJ│───────│JJJJJJJ│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLL│RRRRRRR│LLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLL└───────┘LLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
-;;;FFFFFFFFFFFFFFFFFFFFFFF│LLLLLLLLLLLLLLLLLLLLLLL│eeeeeeeeeeeeeeeeeeeeeee
+;;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;;<<<<<<<<<<<<<<<<<<<<<<<│88888888888888888888888│>>>>>>>>>>>>>>>>>>>>>>>
+;;;<<<<<<<<<<<<<<<<<<<<<<<│88888888888888888888888│>>>>>>>>>>>>>>>>>>>>>>>
+;;;<<4444444444444444444<<│88888888888888888888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888┌───────┐8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│5555555│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│───────│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│6666666│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│8888888│───────│8888888│>>0000000000000000000>>
+;;;<<4444444444444444444<<│9999999│7777777│9999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│9999999└───────┘9999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<4444444444444444444<<│99999999999999999999999│>>0000000000000000000>>
+;;;<<<<<<<<<<<<<<<<<<<<<<<│99999999999999999999999│>>>>>>>>>>>>>>>>>>>>>>>
+;;;<<<<<<<<<<<<<<<<<<<<<<<│99999999999999999999999│>>>>>>>>>>>>>>>>>>>>>>>
+;;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 (defun run ()
   (boots:with-light-borders
