@@ -7,8 +7,7 @@
 (defgeneric prep (terminal full))
 (defgeneric blit (terminal))
 
-(defgeneric put (terminal x y character &optional attr))
-(defgeneric paint (terminal x y width height character &optional attr))
+(defgeneric draw-region (terminal x y width height characters attributes))
 
 (defgeneric read-event (terminal))
 (defgeneric read-event-no-hang (terminal))

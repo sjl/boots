@@ -28,19 +28,22 @@
 (defmethod blit ((terminal static-terminal))
   nil)
 
-(defmethod put ((terminal static-terminal) x y character &optional attr)
-  (setf (aref (characters terminal) y x) character
-        (aref (attributes terminal) y x) (or attr (default)))
-  nil)
 
-(defmethod paint ((terminal static-terminal) x y width height character &optional attr)
+(defmethod draw-region ((terminal static-terminal) x y width height characters attributes)
+  (require-type characters char-array)
+  (require-type attributes attr-array)
   (loop :for x% :from x :below (+ x width) :do
-        (loop :for y% :from y :below (+ y height) :do
-              (setf (aref (characters terminal) y% x%) character
-                    (aref (attributes terminal) y% x%) (or attr (default))))))
+        (loop :for y% :from y :below (+ y height)
+              :for c = (aref characters y% x%)
+              :for a = (aref attributes y% x%)
+              :unless (char= c #\nul)
+              :do (setf (aref (characters terminal) y% x%) c
+                        (aref (attributes terminal) y% x%) a))))
+
 
 (defmethod read-event-no-hang ((terminal static-terminal))
   (pop (events terminal)))
+
 
 (defun stringify (terminal)
   (with-output-to-string (s)

@@ -126,7 +126,8 @@
   ((root :type widget)
    (terminal :type boots/terminals:terminal)
    (width :type size)
-   (height :type size)))
+   (height :type size)
+   (pad)))
 
 (defmethod width% ((screen screen))
   (width screen))

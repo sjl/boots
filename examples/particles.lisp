@@ -79,18 +79,20 @@
     (draw-particle pad p))
   (boots:draw pad (x *cursor*) (y *cursor*) #\space *cursor-attr*))
 
+(defparameter *help-attr*
+  (boots:attr :bold t
+              :fg (boots:rgb 0 0 0)
+              :bg (boots:rgb 255 255 255)))
+
 (defun draw/help (pad)
-  (let ((a (boots:attr :bold t
-                       :fg (boots:rgb 0 0 0)
-                       :bg (boots:rgb 255 255 255))))
-    (boots:paint pad #\space :attr a)
-    (boots:draw pad 0 0 "[wasd] or [hjklyubn] move, [space] add particles, [Q]uit" a)
-    (boots:draw pad 0 1 (format nil "MSPF: ~,2F" *mspf*) a)))
+  (boots:draw pad 0 0 "[wasd] or [hjklyubn] move, [space] add particles, [q]uit"
+              *help-attr*)
+  (boots:draw pad 0 1 (format nil "MSPF: ~,2F" *mspf*) *help-attr*))
 
 (defparameter *ui*
   (boots:stack ()
     (boots:make-canvas :draw 'draw/main)
-    (boots:make-canvas :height 2 :draw 'draw/help)))
+    (boots:make-canvas :height 2 :fill-attr *help-attr* :draw 'draw/help)))
 
 
 ;;;; Main Loop ----------------------------------------------------------------
@@ -111,7 +113,7 @@
 
 (defun handle-event (event)
   (case event
-    (#\Q :quit)
+    (#\q :quit)
     (#\space (add))
     ((#\h #\a) (incf *cursor* #c(-1  0)))
     ((#\j #\s) (incf *cursor* #c( 0  1)))

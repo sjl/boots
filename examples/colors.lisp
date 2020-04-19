@@ -10,7 +10,7 @@
 (defparameter *help*
   (boots:canvas (:width 50 :height 3 :padding 1 :margin-left t :margin-right t) (pad)
     (boots:draw pad 0 0
-                (format nil "space to switch colors~%c to switch between truecolor & 256color~%Q to quit"))))
+                (format nil "space to switch colors~%c to switch between truecolor & 256color~%q to quit"))))
 
 (defun color (state y x)
   (boots:attr :bg (ecase state
@@ -46,7 +46,7 @@
       (loop
         (boots:redraw)
         (case (boots:read-event)
-          (#\Q (return))
+          (#\q (return))
           (#\space (setf *state* (mod (1+ *state*) 8)))
           (#\c (progn (setf (boots/terminals/ansi::truecolor terminal)
                             (not (boots/terminals/ansi::truecolor terminal)))

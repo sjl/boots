@@ -425,10 +425,13 @@
   "
   (let ((tw (boots/terminals:width (terminal screen)))
         (th (boots/terminals:height (terminal screen))))
-    (unless (and
-              nil ; todo can we get around having to do this every time somehow?
-              (= tw (width screen))
-              (= th (height screen)))
+    ; todo ideally we wouldn't do this every frame, but right now we do it
+    ; because it's the easiest way to handle added/removed/modified widgets
+    ; between frames.  could we use the accessors to track changes and only
+    ; recompute when something was changed?
+    (unless (and nil
+                 (= tw (width screen))
+                 (= th (height screen)))
       (setf (width screen) tw
             (height screen) th)
       (resize screen)

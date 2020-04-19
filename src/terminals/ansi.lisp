@@ -103,6 +103,17 @@
    (previous-attributes #-ccl :type #-ccl attr-array)))
 
 
+(defmacro with-arrays ((chars attrs &optional pchars pattrs) terminal &body body)
+  (alexandria:once-only (terminal)
+    `(let ((,chars (characters ,terminal))
+           (,attrs (attributes ,terminal))
+           ,@(when pchars `((,pchars (previous-characters ,terminal))))
+           ,@(when pattrs `((,pattrs (previous-attributes ,terminal)))))
+       (declare (type char-array ,chars ,@(when pchars '(pchars)))
+                (type attr-array ,attrs ,@(when pattrs '(pattrs))))
+       ,@body)))
+
+
 (defun resize (terminal)
   (multiple-value-bind (width height) (get-terminal-size terminal)
     (setf
@@ -190,38 +201,33 @@
 (defun blit% (terminal)
   (declare (optimize (speed 3) (debug 1) (safety 1))
            (type terminal terminal))
-  (let ((chars (characters terminal))
-        (attrs (attributes terminal))
-        (pchars (previous-characters terminal))
-        (pattrs (previous-attributes terminal))
-        (truecolor (truecolor terminal))
-        (buffer (buffer terminal))
-        (stream (output terminal))
-        (last-attr (boots%:default))
-        (move t))
-    (declare (type char-array chars pchars)
-             (type attr-array attrs pattrs))
-    (mansion::reset stream)
-    (dotimes (y (the fixnum (height terminal)))
-      (dotimes (x (the fixnum (width terminal)))
-        (let ((char (aref chars y x))
-              (attr (aref attrs y x))
-              (pchar (aref pchars y x))
-              (pattr (aref pattrs y x)))
-          (if (and (char= char pchar)
-                   (= attr pattr))
-            (setf move t)
-            (progn (when move
-                     (mansion::move-cursor (1+ y) (1+ x) buffer)
-                     (setf move nil))
-                   (unless (= attr last-attr)
-                     (blit-attr truecolor last-attr attr buffer)
-                     (setf last-attr attr))
-                   (write-char char buffer)))))
-      (setf move t))
-    ;; todo let user move cursor
-    (write-string (get-output-stream-string buffer) stream)
-    (force-output stream))
+  (with-arrays (chars attrs pchars pattrs) terminal
+    (let ((truecolor (truecolor terminal))
+          (buffer (buffer terminal))
+          (stream (output terminal))
+          (last-attr (boots%:default))
+          (move t))
+      (mansion::reset stream)
+      (dotimes (y (the size (height terminal)))
+        (dotimes (x (the size (width terminal)))
+          (let ((char (aref chars y x))
+                (attr (aref attrs y x))
+                (pchar (aref pchars y x))
+                (pattr (aref pattrs y x)))
+            (if (and (char= char pchar)
+                     (= attr pattr))
+              (setf move t)
+              (progn (when move
+                       (mansion::move-cursor (1+ y) (1+ x) buffer)
+                       (setf move nil))
+                     (unless (= attr last-attr)
+                       (blit-attr truecolor last-attr attr buffer)
+                       (setf last-attr attr))
+                     (write-char char buffer)))))
+        (setf move t))
+      ;; todo let user move cursor
+      (write-string (get-output-stream-string buffer) stream)
+      (force-output stream)))
   (rotatef (characters terminal) (previous-characters terminal))
   (rotatef (attributes terminal) (previous-attributes terminal))
   (clear-array (characters terminal) #\Space)
@@ -230,37 +236,21 @@
 (defmethod blit ((terminal ansi-terminal))
   (blit% terminal))
 
-(defun paint% (terminal x y width height character attr)
-  (declare (optimize (speed 3) (debug 1) (safety 1))
-           (type fixnum x y width height)
-           (type character character)
-           (type attribute attr))
-  (let ((chars (characters terminal))
-        (attrs (attributes terminal)))
-    #-ccl
-    (declare (type char-array chars)
-             (type attr-array attrs))
-    (loop :for x% fixnum :from x :below (the fixnum (+ x width)) :do
-          (loop :for y% fixnum :from y :below (the fixnum (+ y height)) :do
-                (setf (aref chars y% x%) character
-                      (aref attrs y% x%) attr)))))
 
-(defmethod paint ((terminal ansi-terminal) x y width height character &optional attr)
-  (require-types fixnum x y width height)
-  (require-type character character)
-  (require-type attr (or null attribute))
-  (paint% terminal x y width height character (or attr (boots%:default))))
-
-(defmethod put ((terminal ansi-terminal) x y character &optional attr)
+(defmethod draw-region ((terminal ansi-terminal) x y width height characters attributes)
   (declare (optimize speed))
-  (let ((chars (characters terminal))
-        (attrs (attributes terminal)))
-    #-ccl
-    (declare (type char-array chars)
-             (type attr-array attrs))
-    (setf (aref chars y x) character
-          (aref attrs y x) (or attr (default))))
-  nil)
+  (require-types coord x y)
+  (require-types size width height)
+  (require-type characters char-array)
+  (require-type attributes attr-array)
+  (with-arrays (chars attrs) terminal
+    (loop :for x% :from x :below (+ x width) :do
+          (loop :for y% :from y :below (+ y height)
+                :for c = (aref characters y% x%)
+                :unless (char= #\nul c)
+                :do (setf (aref chars y% x%) c
+                          (aref attrs y% x%) (aref attributes y% x%))))))
+
 
 (defmethod prep ((terminal ansi-terminal) full)
   (when (or full (needs-resize-p terminal))

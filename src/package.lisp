@@ -44,13 +44,11 @@
 ;;;; Terminals ----------------------------------------------------------------
 (defpackage :boots/terminals
   (:use :cl :boots%)
-  (:shadow :paint)
   (:export
     :terminal
     :prep
     :blit
-    :put
-    :paint
+    :draw-region
     :read-event
     :read-event-no-hang
     :width
@@ -58,12 +56,10 @@
 
 (defpackage :boots/terminals/ansi
   (:use :cl :boots% :boots/terminals)
-  (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this 
   (:export :with-ansi-terminal))
 
 (defpackage :boots/terminals/static
   (:use :cl :boots% :boots/terminals)
-  (:shadowing-import-from :boots/terminals :paint) ; todo find a less awful way to deal with this
   (:export :with-static-terminal :stringify))
 
 

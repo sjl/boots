@@ -12,10 +12,16 @@
 
 
 ;;;; Attributes ---------------------------------------------------------------
+;;; unfortunately 1am outputs a . for every test, so if we try to exhaustively
+;;; test the output will be megabytes of . characters.  Good and cool.
+
+(defparameter *interesting-numbers*
+  '(0 1 2 3 4 5 7 8 9 15 16 17 31 32 33 42 63 64 65 100 127 128 129 254 255))
+
 (define-test test-colors
-  (dotimes (r 256)
-    (dotimes (g 256)
-      (dotimes (b 256)
+  (dolist (r *interesting-numbers*)
+    (dolist (g *interesting-numbers*)
+      (dolist (b *interesting-numbers*)
         (let ((color (boots:rgb r g b)))
           (boots%::with-color (has-color r% g% b%) color
             (is (eql t has-color))
@@ -66,7 +72,7 @@
 
 
 ;;;; Layout -------------------------------------------------------------------
-(defun fill-with (char &optional attr)
+(defun fill-with (char &optional (attr (boots:default)))
   (lambda (pad)
     (dotimes (y (boots:height pad))
       (dotimes (x (boots:width pad))
