@@ -5,13 +5,7 @@
   :license "MIT"
 
   :defsystem-depends-on (:cffi-grovel)
-  :depends-on (
-
-               :alexandria
-               :cffi
-               :mansion
-
-               )
+  :depends-on (:alexandria :cffi)
 
   :in-order-to ((asdf:test-op (asdf:test-op :boots/test)))
 

@@ -88,6 +88,8 @@
            (,r (r ,color))
            (,g (g ,color))
            (,b (b ,color)))
+       (declare (type channel ,r ,g ,b)
+                (type boolean ,has-color))
        ,@body)))
 
 (defmacro with-fg ((has-color r g b) attr &body body)

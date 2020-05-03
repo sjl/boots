@@ -1,20 +1,67 @@
 (in-package :boots/terminals/ansi)
 
+;;;; Escapes ------------------------------------------------------------------
+(defmacro e (stream string)
+  `(write-string ,(format nil "~A~A" #\escape string) ,stream))
+
+(defun-inline ansi/reset (stream)            (e stream "[0m"))
+(defun-inline ansi/bold (stream)             (e stream "[1m"))
+(defun-inline ansi/no-bold (stream)          (e stream "[22m"))
+(defun-inline ansi/italic (stream)           (e stream "[3m"))
+(defun-inline ansi/no-italic (stream)        (e stream "[23m"))
+(defun-inline ansi/underline (stream)        (e stream "[4m"))
+(defun-inline ansi/no-underline (stream)     (e stream "[24m"))
+(defun-inline ansi/fg-default (stream)       (e stream "[39m"))
+(defun-inline ansi/bg-default (stream)       (e stream "[49m"))
+(defun-inline ansi/save-terminal (stream)    (e stream "[?1049h"))
+(defun-inline ansi/restore-terminal (stream) (e stream "[?1049l"))
+(defun-inline ansi/clear-terminal (stream)   (e stream "[2J"))
+(defun-inline ansi/show-cursor (stream)      (e stream "[?25h"))
+(defun-inline ansi/hide-cursor (stream)      (e stream "[?25l"))
+
+(defun-inline ansi/truecolor    (stream r g b) (format stream "~A[38;2;~D;~D;~Dm" #\escape r g b))
+(defun-inline ansi/bg-truecolor (stream r g b) (format stream "~A[48;2;~D;~D;~Dm" #\escape r g b))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun-inline encode-rgb (r g b)
+    (+ (* 36 r)
+       (* 6 g)
+       (* 1 b)
+       16)))
+
+(defun-inline rgb-code-fg (n)
+  (aref #.(let ((table (make-array 256)))
+            (dotimes (r 6)
+              (dotimes (g 6)
+                (dotimes (b 6)
+                  (let ((i (encode-rgb r g b)))
+                    (setf (aref table i) (format nil "~A[38;5;~Dm" #\escape i))))))
+            table)
+        n))
+
+(defun-inline rgb-code-bg (n)
+  (aref #.(let ((table (make-array 256)))
+            (dotimes (r 6)
+              (dotimes (g 6)
+                (dotimes (b 6)
+                  (let ((i (encode-rgb r g b)))
+                    (setf (aref table i) (format nil "~A[48;5;~Dm" #\escape i))))))
+            table)
+        n))
+
+
+(defun-inline ansi/rgb (stream r g b)
+  (write-string (rgb-code-fg (encode-rgb r g b)) stream))
+
+(defun-inline ansi/bg-rgb (stream r g b)
+  (write-string (rgb-code-bg (encode-rgb r g b)) stream))
+
+(defun-inline ansi/move-cursor (stream row col)
+  (format stream "~A[~D;~DH" #\escape row col))
+
+
 ;;;; Plumbing -----------------------------------------------------------------
 (define-modify-macro logandf (&rest args) logand)
-
-(defun e (stream string)
-  (write-char #\Escape stream)
-  (write-string string stream))
-
-(defun save-terminal (stream)
-  (e stream "[?1049h"))
-
-(defun restore-terminal (stream)
-  (e stream "[?1049l"))
-
-(defun clear-terminal (stream)
-  (e stream "[2J"))
 
 (defun fd (stream direction)
   (declare (ignorable direction))
@@ -95,7 +142,7 @@
    (output :type stream)
    (truecolor :type boolean)
    (original-termios :initform nil)
-   (buffer :initform (make-string-output-stream))
+   (buffer :initform (make-string-output-stream) :type stream)
    ;; https://github.com/Clozure/ccl/issues/291
    (characters          #-ccl :type #-ccl char-array)
    (previous-characters #-ccl :type #-ccl char-array)
@@ -145,7 +192,7 @@
        (stop ,symbol))))
 
 (defun-inline simplify-color (value)
-  "Convert an 8-bit truecolor channel value to a 0-6 256color value."
+  "Convert an 8-bit truecolor channel value to a 0-5 256color value."
   ;; todo make this smarter
   (cond
     ((<= value 10) 0)
@@ -157,35 +204,34 @@
 
 (defun blit-attr (truecolor prev attr stream)
   (declare (optimize speed)
-           (type attribute prev attr))
+           (type attribute prev attr)
+           (type stream stream))
   (when (zerop attr)
-    (mansion::reset stream)
+    (ansi/reset stream)
     (return-from blit-attr))
   (let ((b (boldp attr))      (bp (boldp prev))
         (i (italicp attr))    (ip (italicp prev))
         (u (underlinep attr)) (up (underlinep prev)))
-    (cond ((and b (not bp)) (mansion::bold stream))
-          ((and (not b) bp) (mansion::no-bold stream)))
-    (cond ((and i (not ip)) (mansion::italic stream))
-          ((and (not i) ip) (mansion::no-italic stream)))
-    (cond ((and u (not up)) (mansion::underline stream))
-          ((and (not u) up) (mansion::no-underline stream))))
+    (cond ((and b (not bp)) (ansi/bold stream))
+          ((and (not b) bp) (ansi/no-bold stream)))
+    (cond ((and i (not ip)) (ansi/italic stream))
+          ((and (not i) ip) (ansi/no-italic stream)))
+    (cond ((and u (not up)) (ansi/underline stream))
+          ((and (not u) up) (ansi/no-underline stream))))
   (when (/= (fg attr) (fg prev))
     (with-fg (c r g b) attr
       (if c
         (if truecolor
-          (mansion::truecolor r g b stream)
-          (mansion::rgb (simplify-color r) (simplify-color g) (simplify-color b)
-                        stream))
-        (mansion::fg-default stream))))
+          (ansi/truecolor stream r g b)
+          (ansi/rgb stream (simplify-color r) (simplify-color g) (simplify-color b)))
+        (ansi/fg-default stream))))
   (when (/= (bg attr) (bg prev))
     (with-bg (c r g b) attr
       (if c
         (if truecolor
-          (mansion::bg-truecolor r g b stream)
-          (mansion::bg-rgb (simplify-color r) (simplify-color g) (simplify-color b)
-                           stream))
-        (mansion::bg-default stream))))
+          (ansi/bg-truecolor stream r g b)
+          (ansi/bg-rgb stream (simplify-color r) (simplify-color g) (simplify-color b)))
+        (ansi/bg-default stream))))
   nil)
 
 (defun clear-array (array value)
@@ -207,7 +253,8 @@
           (stream (output terminal))
           (last-attr (boots%:default))
           (move t))
-      (mansion::reset stream)
+      (declare (type stream buffer stream))
+      (ansi/reset stream)
       (dotimes (y (the size (height terminal)))
         (dotimes (x (the size (width terminal)))
           (let ((char (aref chars y x))
@@ -218,7 +265,7 @@
                      (= attr pattr))
               (setf move t)
               (progn (when move
-                       (mansion::move-cursor (1+ y) (1+ x) buffer)
+                       (ansi/move-cursor buffer (1+ y) (1+ x))
                        (setf move nil))
                      (unless (= attr last-attr)
                        (blit-attr truecolor last-attr attr buffer)
@@ -265,14 +312,14 @@
 
 
 (defun start (terminal)
-  (save-terminal (output terminal))
-  (clear-terminal (output terminal))
+  (ansi/save-terminal (output terminal))
+  (ansi/clear-terminal (output terminal))
   (resize terminal)
-  (mansion::hide-cursor (output terminal))
+  (ansi/hide-cursor (output terminal))
   (enable-raw terminal))
 
 (defun stop (terminal)
   (disable-raw terminal)
-  (clear-terminal (output terminal))
-  (mansion::show-cursor (output terminal))
-  (restore-terminal (output terminal)))
+  (ansi/clear-terminal (output terminal))
+  (ansi/show-cursor (output terminal))
+  (ansi/restore-terminal (output terminal)))

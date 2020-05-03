@@ -2,11 +2,11 @@
 
 (ql:quickload '(:boots :bobbin :alexandria :chancery))
 
-(defpackage :boots/examples/afk
+(defpackage :boots/examples/alien-finds-kitten
   (:use :cl)
   (:export :run))
 
-(in-package :boots/examples/afk)
+(in-package :boots/examples/alien-finds-kitten)
 
 ;;;; Configuration ------------------------------------------------------------
 (defparameter *version* "1.0.0")
