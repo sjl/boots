@@ -1,6 +1,7 @@
 (in-package :boots)
 
 (defmacro with-screen ((symbol terminal &key root) &body body)
+  (setf symbol (or symbol '*screen*))
   `(let* ((,symbol (boots%:make-screen ,terminal :root ,root))
           ,@(unless (eql symbol '*screen*)
               `((*screen* ,symbol))))
