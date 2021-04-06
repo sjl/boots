@@ -253,7 +253,7 @@
   (push (boots:canvas (:border t :margin t :height 3 :width 36) (pad)
           (draw/win frame pad))
         (boots:children (boots:root boots:*screen*)))
-  (loop :repeat 7 :do (boots:redraw) (incf frame) (sleep 1/2))
+  (loop :repeat 7 :do (boots:redraw) (incf frame) (boots:wait 1/2))
   (loop :until (member (boots:read-event) '(#\newline #\q #\space))))
 
 
@@ -344,4 +344,5 @@
   (setf *random-state* (make-random-state t))
   (boots/terminals/ansi:with-ansi-terminal (terminal :truecolor t)
     (boots:with-screen (boots:*screen* terminal)
-      (intro))))
+      (boots:with-light-borders
+        (intro)))))

@@ -109,4 +109,6 @@
 
     :redraw
     :read-event
-    :read-event-no-hang))
+    :read-event-no-hang
+
+    :wait))

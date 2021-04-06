@@ -98,7 +98,7 @@
   (assert (or (/= -1 value)
               (member *errno* acceptable-errors))
       ()
-    "Error in ~S: ~A" form (strerror *errno*))
+    "Error in ~S: ~D: ~A" form *errno* (strerror *errno*))
   value)
 
 (defmacro check (form &key acceptable-errors)
@@ -134,6 +134,31 @@
     (when termios
       (check (tcsetattr (fd (input terminal) :input) +tcsaflush+ termios))
       (cffi:foreign-free termios))))
+
+
+;;;; Input --------------------------------------------------------------------
+(cffi:defcfun "fcntl" :int
+  (file-descriptor :int)
+  (command :int)
+  &rest)
+
+(cffi:defcfun ("read" c-read) :int
+  (file-descriptor :int)
+  (buffer :pointer)
+  (bytes :int))
+
+
+(defun enable-non-blocking (fd)
+  (let ((flags (check (fcntl fd +f-getfl+))))
+    (check (fcntl fd +f-setfl+ :int (logior flags +o-nonblock+)))))
+
+(defun read-byte-no-hang (fd)
+  (cffi:with-foreign-object (buf :char 1)
+    (case (check (c-read fd buf 1)
+           :acceptable-errors '(#.+eagain+ #.+ewouldblock+))
+      (-1 nil) ; would have blocked
+      (0 nil) ; eof?
+      (t (cffi:mem-ref buf :char 0)))))
 
 
 ;;;; Terminal -----------------------------------------------------------------

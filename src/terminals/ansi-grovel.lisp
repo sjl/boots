@@ -3,6 +3,8 @@
 (include
   "unistd.h"
   "termios.h"
+  "fcntl.h"
+  "errno.h"
   "sys/ioctl.h")
 
 (constant (+TIOCGWINSZ+ "TIOCGWINSZ"))
@@ -17,6 +19,11 @@
 (constant (+ISIG+ "ISIG"))
 (constant (+OPOST+ "OPOST"))
 (constant (+BRKINT+ "BRKINT"))
+(constant (+F-SETFL+ "F_SETFL"))
+(constant (+F-GETFL+ "F_SETFL"))
+(constant (+O-NONBLOCK+ "O_NONBLOCK"))
+(constant (+EAGAIN+ "EAGAIN"))
+(constant (+EWOULDBLOCK+ "EWOULDBLOCK"))
 
 (cstruct winsize "struct winsize"
   (ws-row "ws_row" :type :unsigned-short)

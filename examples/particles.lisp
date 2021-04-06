@@ -87,12 +87,14 @@
 (defun draw/help (pad)
   (boots:draw pad 0 0 "[wasd] or [hjklyubn] move, [space] add particles, [q]uit"
               *help-attr*)
-  (boots:draw pad 0 1 (format nil "MSPF: ~,2F" *mspf*) *help-attr*))
+  (boots:draw pad 0 1 (format nil "MSPF: ~,3F" *mspf*) *help-attr*))
 
 (defparameter *ui*
   (boots:stack ()
     (boots:make-canvas :draw 'draw/main)
     (boots:make-canvas :height 2 :fill-attr *help-attr* :draw 'draw/help)))
+
+(defparameter *uncap* nil)
 
 
 ;;;; Main Loop ----------------------------------------------------------------
@@ -139,7 +141,8 @@
           (case (handle-event (boots:read-event-no-hang))
             (:quit (return)))
           (boots:redraw)
-          (sleep 1/60))))
+          (unless *uncap*
+            (boots:wait 1/60)))))
 
 (defun run ()
   (setf *random-state* (make-random-state t))

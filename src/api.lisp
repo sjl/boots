@@ -51,3 +51,13 @@
          (*border-vertical-char*     (char "┃" 0))
          (*border-horizontal-char*   (char "━" 0)))
      ,@body))
+
+(defun wait (seconds &key (screen *screen*))
+  (boots%:require-type screen boots%:screen)
+  (boots%:require-type seconds (real 0 *))
+  (loop :with remaining = seconds
+        :for amount = (min 1/60 remaining)
+        :do (progn (sleep amount)
+                   (boots%:redraw-screen screen nil)
+                   (decf remaining amount))
+        :while (plusp amount)))
