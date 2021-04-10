@@ -17,7 +17,7 @@
 
 (defun redraw (&key (screen *screen*) (full nil))
   (boots%:require-type screen boots%:screen)
-  (boots%:redraw-screen screen full))
+  (boots%:redraw-screen screen (if full :full :default)))
 
 (defun width (pad)
   (boots%:pad-w pad))
@@ -58,6 +58,6 @@
   (loop :with remaining = seconds
         :for amount = (min 1/60 remaining)
         :do (progn (sleep amount)
-                   (boots%:redraw-screen screen nil)
+                   (boots%:redraw-screen screen :minimal)
                    (decf remaining amount))
         :while (plusp amount)))

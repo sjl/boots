@@ -67,9 +67,11 @@
         (setf (pad-characters pad) (make2d th tw 'character #\nul)
               (pad-attributes pad) (make2d th tw 'attribute (default)))))))
 
-(defun redraw-screen (screen full)
+(defun redraw-screen (screen mode)
   (require-type screen screen)
-  (boots/terminals:prep (terminal screen) full)
+  (when (not (boots/terminals:prep (terminal screen) mode))
+    ;; If we don't actually need to redraw, bail early.
+    (return-from redraw-screen))
   (ensure-screen-resized screen)
   (let ((pad (if (slot-boundp screen 'pad)
                (pad screen)

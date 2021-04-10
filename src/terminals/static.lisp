@@ -21,9 +21,10 @@
   `(let ((,symbol (make-static-terminal ,width ,height ,events)))
      ,@body))
 
-(defmethod prep ((terminal static-terminal) full)
+(defmethod prep ((terminal static-terminal) mode)
   (fill2d (characters terminal) #\space)
-  (fill2d (attributes terminal) (default)))
+  (fill2d (attributes terminal) (default))
+  t)
 
 (defmethod blit ((terminal static-terminal))
   nil)

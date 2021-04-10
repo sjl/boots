@@ -324,10 +324,14 @@
                           (aref attrs y% x%) (aref attributes y% x%))))))
 
 
-(defmethod prep ((terminal ansi-terminal) full)
-  (when (or full (needs-resize-p terminal))
-    (resize terminal)) ; todo name this something better
-  (values))
+(defmethod prep ((terminal ansi-terminal) mode)
+  (let ((resized nil))
+    (when (or (eql mode :full) (needs-resize-p terminal))
+      (resize terminal)
+      (setf resized t))
+    (ecase mode
+      ((:full :default) t)
+      (:minimal resized)))) ; only redraw on minimal if the size changed
 
 (defmethod read-event-no-hang ((terminal ansi-terminal))
   (when (needs-resize-p terminal)
