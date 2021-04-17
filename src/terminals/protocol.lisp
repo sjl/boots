@@ -31,8 +31,8 @@
 (defgeneric read-event-no-hang (terminal))
 
 (defmethod read-event (terminal)
-  (loop
-    :for event = (read-event-no-hang terminal)
-    :if event :do (return event)
-    :else :do (sleep 1/60)))
+  (loop (multiple-value-bind (event modifiers) (read-event-no-hang terminal)
+          (if event
+            (return (values event modifiers))
+            (boots:wait 1/60)))))
 

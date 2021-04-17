@@ -43,7 +43,11 @@
 
 
 (defmethod read-event-no-hang ((terminal static-terminal))
-  (pop (events terminal)))
+  (let ((next (pop (events terminal))))
+    (typecase next
+      (null (values nil (vanilla)))
+      (cons (values-list next))
+      (t (values next (vanilla))))))
 
 
 (defun stringify (terminal)

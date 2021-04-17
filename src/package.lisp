@@ -37,6 +37,9 @@
     :canvas :make-canvas
     :screen :make-screen
 
+    :event-case
+    :modifiers :vanilla :print-modifiers :shiftp :ctrlp :altp :vanillap
+
     :root
     :children))
 
@@ -51,6 +54,7 @@
     :draw-region
     :read-event
     :read-event-no-hang
+    :event-case
     :width
     :height))
 
@@ -90,7 +94,6 @@
     :attribute :color
     :attr :rgb :default
 
-    :event
 
     :*border-vertical-char* :*border-horizontal-char*
     :*border-top-left-char* :*border-top-right-char*
@@ -108,7 +111,10 @@
     :root :children
 
     :redraw
+
     :read-event
     :read-event-no-hang
+    :event
+    :event-case
 
     :wait))

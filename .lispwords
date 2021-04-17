@@ -1,5 +1,7 @@
 (1 do-list)
 (1 do-buffer)
+(1 ecodecase)
+(1 event-case)
 
 (1 stack shelf pile)
 (2 canvas)

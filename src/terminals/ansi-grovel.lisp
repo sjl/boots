@@ -15,6 +15,7 @@
 (constant (+ECHO+ "ECHO"))
 (constant (+ICANON+ "ICANON"))
 (constant (+IXON+ "IXON"))
+(constant (+ICRNL+ "ICRNL"))
 (constant (+IEXTEN+ "IEXTEN"))
 (constant (+ISIG+ "ISIG"))
 (constant (+OPOST+ "OPOST"))

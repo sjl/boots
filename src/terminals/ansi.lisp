@@ -123,7 +123,7 @@
       (logandf (cffi:foreign-slot-value new-termios '(:struct termios) 'local-modes)
                (lognot (logior +echo+ +icanon+ +isig+ +iexten+)))
       (logandf (cffi:foreign-slot-value new-termios '(:struct termios) 'input-modes)
-               (lognot (logior +ixon+ +brkint+)))
+               (lognot (logior +ixon+ +brkint+ +icrnl+)))
       (logandf (cffi:foreign-slot-value new-termios '(:struct termios) 'output-modes)
                (lognot (logior)))
       (check (tcsetattr fd +tcsaflush+ new-termios))))
@@ -148,17 +148,131 @@
   (bytes :int))
 
 
+(defconstant +input-buffer-size+ 64)
+
+(defstruct (input-buffer (:conc-name ib-) (:constructor make-input-buffer%))
+  (fd (error "fd is required") :type fixnum)
+  (pos 0 :type fixnum)
+  (len 0 :type fixnum)
+  (data (cffi:make-shareable-byte-vector +input-buffer-size+) :read-only t))
+
+(defun make-input-buffer (stream)
+  (make-input-buffer% :fd (fd stream :input)))
+
+(defmethod print-object ((buffer input-buffer) stream)
+  (print-unreadable-object (buffer stream :type t)
+    (format stream "(FD ~D) ~D/~D ~S"
+            (ib-fd buffer) (ib-pos buffer) (ib-len buffer)
+            (with-output-to-string (s)
+              (loop :for i :from (ib-pos buffer) :below (ib-len buffer)
+                    :do (princ (code-char (aref (ib-data buffer) i)) s))))))
+
+(defun-inline ib-emptyp (buffer)
+  (= (ib-pos buffer) (ib-len buffer)))
+
+(defun ib-refill (buffer)
+  "Fill `buffer` (which must be empty) with any waiting input.
+
+  Returns a boolean denoting whether any data was read.
+
+  "
+  (check-type buffer input-buffer)
+  (assert (ib-emptyp buffer) ()
+    "input-buffer must be empty before calling fill-input-buffer")
+  (let ((bytes-read (check (cffi:with-pointer-to-vector-data (b (ib-data buffer))
+                             (c-read (ib-fd buffer) b +input-buffer-size+))
+                           :acceptable-errors '(#.+eagain+ #.+ewouldblock+))))
+    (case bytes-read
+      (-1 nil) ; would have blocked
+      (0 nil) ; eof?
+      (t (progn (setf (ib-pos buffer) 0
+                      (ib-len buffer) bytes-read)
+                t)))))
+
+(defun ib-peek-byte (buffer)
+  (if (ib-emptyp buffer)
+    (if (ib-refill buffer)
+      (ib-peek-byte buffer)
+      nil)
+    (aref (ib-data buffer) (ib-pos buffer))))
+
+(defun ib-read-byte-no-hang (buffer)
+  (if (ib-emptyp buffer)
+    (if (ib-refill buffer)
+      (ib-read-byte-no-hang buffer)
+      nil)
+    (prog1 (aref (ib-data buffer) (ib-pos buffer))
+      (incf (ib-pos buffer)))))
+
+
 (defun enable-non-blocking (fd)
   (let ((flags (check (fcntl fd +f-getfl+))))
     (check (fcntl fd +f-setfl+ :int (logior flags +o-nonblock+)))))
 
-(defun read-byte-no-hang (fd)
-  (cffi:with-foreign-object (buf :char 1)
-    (case (check (c-read fd buf 1)
-           :acceptable-errors '(#.+eagain+ #.+ewouldblock+))
-      (-1 nil) ; would have blocked
-      (0 nil) ; eof?
-      (t (cffi:mem-ref buf :char 0)))))
+(defun disable-non-blocking (fd)
+  (let ((flags (check (fcntl fd +f-getfl+))))
+    (check (fcntl fd +f-setfl+ :int (logand flags (lognot +o-nonblock+))))))
+
+
+;;;; Events -------------------------------------------------------------------
+;; TODO Replace all this with https://github.com/npatrick04/terminfo/ after the jam.
+(define-condition read-event-error (error) ())
+(define-condition partial-escape-sequence (read-event-error) ())
+
+(defmacro ecodecase (value &body clauses)
+  (labels ((parse-key (key)
+             (etypecase key
+               (character (char-code key))
+               ((unsigned-byte 8) key)))
+           (parse-keys (keys)
+             (mapcar #'parse-key (if (listp keys) keys (list keys)))))
+    `(ecase ,value
+       ((nil) (error 'partial-escape-sequence))
+       ,@(loop :for (keys . body) :in clauses
+               :collect `(,(parse-keys keys) ,@body)))))
+
+(defun read-escaped (ib)
+  (flet ((ensure-tilde ()
+           (unless (= (char-code #\~) (ib-read-byte-no-hang ib))
+             (error 'partial-escape-sequence))))
+    (let ((x (ib-read-byte-no-hang ib)))
+      (cond
+        ;; Treat a bare escape as ESC, i.e. ctrl-[.
+        ((null x) (values #\[ (boots%:modifiers nil t nil)))
+        ;; ctrl-alt-esc
+        ((= x 13) (values #\[ (boots%:modifiers nil t t)))
+        (t (let ((y (ib-read-byte-no-hang ib)))
+             (ecodecase x
+               (#\[ (ecodecase y
+                      (#\A (values :up 0))
+                      (#\B (values :down 0))
+                      (#\C (values :right 0))
+                      (#\D (values :left 0))
+                      (#\5 (ensure-tilde) (values :page-up 0))
+                      (#\6 (ensure-tilde) (values :page-down 0))
+                      ((#\1 #\7) (ensure-tilde) (values :home 0))
+                      ((#\4 #\8) (ensure-tilde) (values :end 0))
+                      (#\3 (ensure-tilde) (values :delete 0))
+                      (#\P (values :delete 0)) ; st is the odd one out
+                      (#\H (values :home 0))
+                      (#\F (values :end 0))))
+               (#\O (ecodecase y
+                      (#\H (values :home 0))
+                      (#\F (values :end 0)))))))))))
+
+(defun read-event% (ib)
+  (let ((b (ib-read-byte-no-hang ib)))
+    (cond
+      ((null b) (values nil nil))
+      ((= b 27) (read-escaped ib))
+      ((<= b 31) (values (aref "@abcdefghijklmnopqrstuvwxyz[\\]^_" b) ; ctrl-…
+                         (boots%:modifiers nil t nil)))
+      ((<= b 125) (values (aref " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}"
+                                (- b 32))
+                          0))
+      ((= b 126) (values #\~ 0))
+      ((= b 127) (values :backspace 0))
+      (t (values b 0)))))
 
 
 ;;;; Terminal -----------------------------------------------------------------
@@ -168,11 +282,19 @@
    (truecolor :type boolean)
    (original-termios :initform nil)
    (buffer :initform (make-string-output-stream) :type stream)
+   (input-buffer :type input-buffer)
    ;; https://github.com/Clozure/ccl/issues/291
    (characters          #-ccl :type #-ccl char-array)
    (previous-characters #-ccl :type #-ccl char-array)
    (attributes          #-ccl :type #-ccl attr-array)
    (previous-attributes #-ccl :type #-ccl attr-array)))
+
+(defun make-ansi-terminal (&key input-stream output-stream truecolor)
+  (make-instance 'ansi-terminal
+    :input input-stream
+    :input-buffer (make-input-buffer input-stream)
+    :output output-stream
+    :truecolor truecolor))
 
 
 (defmacro with-arrays ((chars attrs &optional pchars pattrs) terminal &body body)
@@ -208,10 +330,9 @@
                                       (output-stream '*standard-output*)
                                       (truecolor t))
                               &body body)
-  `(let ((,symbol (make-instance 'ansi-terminal
-                    :input ,input-stream
-                    :output ,output-stream
-                    :truecolor ,truecolor)))
+  `(let ((,symbol (make-ansi-terminal :input-stream ,input-stream
+                                      :output-stream ,output-stream
+                                      :truecolor ,truecolor)))
      (start ,symbol)
      (unwind-protect (progn ,@body)
        (stop ,symbol))))
@@ -333,14 +454,9 @@
       ((:full :default) t)
       (:minimal resized)))) ; only redraw on minimal if the size changed
 
-(defmethod read-event-no-hang ((terminal ansi-terminal))
-  (when (needs-resize-p terminal)
-    (resize terminal)
-    (boots:redraw))
-  (read-char-no-hang (input terminal)))
-
 
 (defun start (terminal)
+  (enable-non-blocking (fd (input terminal) :input))
   (ansi/save-terminal (output terminal))
   (ansi/clear-terminal (output terminal))
   (resize terminal)
@@ -348,7 +464,13 @@
   (enable-raw terminal))
 
 (defun stop (terminal)
+  (disable-non-blocking (fd (input terminal) :input))
   (disable-raw terminal)
   (ansi/clear-terminal (output terminal))
   (ansi/show-cursor (output terminal))
   (ansi/restore-terminal (output terminal)))
+
+
+(defmethod read-event-no-hang ((terminal ansi-terminal))
+  (read-event% (input-buffer terminal)))
+

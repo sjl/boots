@@ -8,17 +8,24 @@
 
 (defparameter *events* (make-list 10 :initial-element nil))
 
-(defparameter *ui* (boots:canvas (:width 30 :height 11 :border t :margin t) (pad)
+(defparameter *ui* (boots:canvas (:width 50 :height 11 :border t :margin t) (pad)
                      (boots:draw pad 0 0 "Press Q to quit.")
-                     (boots:draw pad 0 1 (format nil "~{~S~%~}" *events*))))
+                     (loop :for row :from 1
+                           :for (event . modifiers) in *events*
+                           :for s = (format nil "~S ~A" event (boots%::print-modifiers modifiers nil))
+                           :do (boots:draw pad 0 row s))))
 
 (defun run ()
   (boots/terminals/ansi:with-ansi-terminal (terminal)
     (boots:with-screen (boots:*screen* terminal :root *ui*)
+      (fill *events* (cons nil nil))
       (loop
+        (setf *events* (subseq *events* 0 10))
         (boots:redraw)
-        (let ((event (boots:read-event)))
-          (case event
+        (multiple-value-bind (e m) (boots:read-event)
+          (boots:event-case (values e m)
             (#\Q (return))
-            (t (progn (push event *events*)
-                      (setf *events* (subseq *events* 0 10))))))))))
+            (#\newline (push (cons :return 0) *events*))
+            (#\escape (push (cons :escape 0) *events*))
+            (t (push (cons e m) *events*))))))))
+
