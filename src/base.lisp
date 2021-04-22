@@ -26,6 +26,7 @@
 (defparameter *border-bottom-right-char* #\+)
 (defparameter *border-vertical-char*     #\|)
 (defparameter *border-horizontal-char*   #\-)
+(defparameter *border-attr*                0)
 
 ;;;; Utilities ----------------------------------------------------------------
 (defmacro defun-inline (name args &body body)

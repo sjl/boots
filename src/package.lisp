@@ -9,6 +9,7 @@
     :*border-bottom-right-char*
     :*border-vertical-char*
     :*border-horizontal-char*
+    :*border-attr*
 
     :size :coord :char-array :attr-array
 
@@ -81,6 +82,7 @@
     :*border-vertical-char* :*border-horizontal-char*
     :*border-top-left-char* :*border-top-right-char*
     :*border-bottom-left-char* :*border-bottom-right-char*
+    :*border-attr*
 
     :draw :paint
 
@@ -98,7 +100,9 @@
     :*border-vertical-char* :*border-horizontal-char*
     :*border-top-left-char* :*border-top-right-char*
     :*border-bottom-left-char* :*border-bottom-right-char*
+    :*border-attr*
     :with-simple-borders :with-light-borders :with-heavy-borders
+    :*border-attr*
 
     :draw :paint
     :width :height

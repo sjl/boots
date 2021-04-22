@@ -105,7 +105,7 @@
     (if has-color
       (format stream "(r ~3D) (g ~3D) (b ~3D)~%" r g b)
       (progn (assert (= 0 r g b))
-             (write-line "default" stream)))))
+             (format stream "default")))))
 
 (defun pretty-bits (n)
   (require-type n (unsigned-byte 64))
@@ -124,4 +124,13 @@
   (write-string  "         BG: " stream)
   (pprint-color (bg attr) stream)
   (values))
+
+(defun print-attr (attr &optional (stream *standard-output*))
+  (require-type attr attribute)
+  (format stream "#<ATTR~A~A~A [fg ~A] [bg ~A]>"
+          (if (boldp attr) " bold" "")
+          (if (italicp attr) " italic" "")
+          (if (underlinep attr) " underline" "")
+          (pprint-color (fg attr) nil)
+          (pprint-color (bg attr) nil)))
 
