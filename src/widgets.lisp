@@ -123,7 +123,7 @@
   ((drawing-function :type function-designator)))
 
 (defclass* screen ()
-  ((root :type widget)
+  ((root :type widget :accessor root%)
    (terminal :type boots/terminals:terminal)
    (width :type size)
    (height :type size)
