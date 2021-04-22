@@ -41,44 +41,58 @@
                                                  (when (altp modifiers) '("ALT"))))))))))
 
 
+(defun modifier-designator-p (object)
+  (member object '(:shift :ctrl :alt)))
+
+(defun add-mod (mod mods)
+  (concatenate 'vector mods (list mod)))
+
+(defun parse-spec (spec)
+  ;; Parse a spec into (key . modifiers-fixnum).
+  (let* ((normalized-spec (etypecase spec
+                            (vector spec)
+                            ((or symbol character boolean) (vector spec))))
+         (key (remove-if #'modifier-designator-p normalized-spec))
+         (mods (remove-if-not #'modifier-designator-p normalized-spec)))
+    (when (or (/= 1 (length key))
+              (and (member (elt key 0) '(nil t otherwise))
+                   (plusp (length mods))))
+      (error "Malformed event spec ~S (key ~S modifiers ~S)." spec key mods))
+    (setf key (elt key 0))
+    (case key
+      (#\tab (setf key #\i mods (add-mod :ctrl mods)))
+      (#\newline (setf key #\m mods (add-mod :ctrl mods)))
+      (#\escape (setf key #\[ mods (add-mod :ctrl mods))))
+    (cons key (modifiers (find :shift mods)
+                         (find :ctrl mods)
+                         (find :alt mods)))))
+
+(defun-inline event=% (key-spec mod-spec event mods)
+  (case key-spec
+    ((nil) (null event))
+    ((t) t)
+    (t (and (eql event key-spec)
+            (eql mods mod-spec)))))
+
+(defun-inline event= (event-spec event mods)
+  (let ((spec (parse-spec event-spec)))
+    (event=% (car spec) (cdr spec) event mods)))
+
+(define-compiler-macro event= (&whole form spec event modifiers)
+  (if (constantp spec)
+      (let ((spec (parse-spec spec)))
+        `(event=% ,(car spec) ,(cdr spec) ,event ,modifiers))
+    form))
+
+
 (defmacro event-case (event-values &body clauses)
-  ;; TODO Bisect on modifiers to make this faster.
+  ;; TODO Bisect on modifiers to make this faster?
   (alexandria:with-gensyms (e m)
-    (labels ((modifier-designator-p (object)
-               (member object '(:shift :ctrl :alt)))
-             (add-mod (mod mods)
-               (concatenate 'vector mods (list mod)))
-             (parse-spec (spec)
-               ;; Parse a spec into (key . modifiers-fixnum).
-               (let* ((normalized-spec (etypecase spec
-                                         (vector spec)
-                                         ((or symbol character boolean) (vector spec))))
-                      (key (remove-if #'modifier-designator-p normalized-spec))
-                      (mods (remove-if-not #'modifier-designator-p normalized-spec)))
-                 (when (or (/= 1 (length key))
-                           (and (member (elt key 0) '(nil t otherwise))
-                                (plusp (length mods))))
-                   (error "Malformed event-case key spec ~S (key ~S modifiers ~S)." spec key mods))
-                 (setf key (elt key 0))
-                 (case key
-                   (#\newline (setf key #\m mods (add-mod :ctrl mods)))
-                   (#\escape (setf key #\[ mods (add-mod :ctrl mods))))
-                 (cons key (modifiers (find :shift mods)
-                                      (find :ctrl mods)
-                                      (find :alt mods)))))
-             (parse-specs (specs)
-               (mapcar #'parse-spec (if (consp specs) specs (list specs))))
-             (modifiers->check (modifiers)
-               `(eql ,m ,modifiers))
-             (spec->check (spec)
-               (destructuring-bind (key . modifiers) spec
-                 (case key
-                   ((t otherwise) `t)
-                   ((nil) `(null ,e))
-                   (t `(and (eql ,key ,e) ,(modifiers->check modifiers))))))
+    (labels ((spec->check (spec)
+               `(event= ,spec ,e ,m))
              (specs->check (specs)
-               `(or ,@(mapcar #'spec->check specs))))
-      (let ((specs (mapcar #'parse-specs (mapcar #'car clauses)))
+               `(or ,@(mapcar #'spec->check (if (consp specs) specs (list specs))))))
+      (let ((specs (mapcar #'car clauses))
             (bodies (mapcar #'cdr clauses)))
         `(multiple-value-bind (,e ,m) ,event-values
            (cond ,@(loop

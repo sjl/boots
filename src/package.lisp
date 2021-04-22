@@ -39,6 +39,7 @@
     :screen :make-screen
 
     :event-case
+    :event=
     :modifiers :vanilla :print-modifiers :shiftp :ctrlp :altp :vanillap
 
     :root
@@ -78,6 +79,7 @@
     :attr :rgb :default
 
     :event
+    :event=
 
     :*border-vertical-char* :*border-horizontal-char*
     :*border-top-left-char* :*border-top-right-char*
@@ -95,7 +97,6 @@
 
     :attribute :color
     :attr :rgb :default
-
 
     :*border-vertical-char* :*border-horizontal-char*
     :*border-top-left-char* :*border-top-right-char*
@@ -119,6 +120,6 @@
     :read-event
     :read-event-no-hang
     :event
-    :event-case
+    :event= :event-case
 
     :wait))
