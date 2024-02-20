@@ -19,6 +19,15 @@
   (/ (- (get-internal-real-time) *started*)
      internal-time-units-per-second))
 
+(defun elapsed-string ()
+  (let ((sec (elapsed)))
+    (if (< sec 60)
+      (format nil "~5,2,,,'0F"
+              (mod sec 60))
+      (format nil "~2,'0D:~5,2,,,'0F"
+              (truncate sec 60)
+              (mod sec 60)))))
+
 (defun rendered-length (thing)
   (typecase thing
     (list (reduce #'+ thing :key #'rendered-length))
@@ -35,7 +44,7 @@
   (boots:canvas (:height 2 :margin-top t :margin-bottom t) (pad)
     (draw-centered pad 0 (format nil "~,2F" (ecase *state*
                                               (:ready 0)
-                                              (:active (elapsed))
+                                              (:active (elapsed-string))
                                               (:stopped *total*))))
     (draw-centered pad 1 (list "Press "
                                +bold+ "space" nil " to start/stop/reset, "
