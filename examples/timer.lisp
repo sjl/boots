@@ -36,16 +36,17 @@
     (t 0)))
 
 (defun draw-centered (pad y thing)
+  (boots:paint pad #\space :y y)
   (boots:draw pad (truncate (- (boots:width pad) (rendered-length thing)) 2)
               y
               thing))
 
 (defparameter *w-timer*
   (boots:canvas (:height 2 :margin-top t :margin-bottom t) (pad)
-    (draw-centered pad 0 (format nil "~,2F" (ecase *state*
-                                              (:ready 0)
-                                              (:active (elapsed-string))
-                                              (:stopped *total*))))
+    (draw-centered pad 0 (format nil "~A" (ecase *state*
+                                            (:ready "00.00")
+                                            (:active (elapsed-string))
+                                            (:stopped *total*))))
     (draw-centered pad 1 (list "Press "
                                +bold+ "space" nil " to start/stop/reset, "
                                +bold-red+ "q" nil " to quit."))))
@@ -53,7 +54,7 @@
 (defun handle-press ()
   (ecase *state*
     (:ready (setf *started* (get-internal-real-time)))
-    (:active (setf *total* (elapsed)))
+    (:active (setf *total* (elapsed-string)))
     (:stopped (setf *started* nil *total* nil)))
   (setf *state* (pop *states*)))
 
